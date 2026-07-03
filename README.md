@@ -1,5 +1,5 @@
 # Agentic-RAG-Cookbook
-![Agentic RAG Cookbook Map](Agentic-RAG-Cookboo.png)
+
 
 
 <p align="center">
