@@ -44,7 +44,7 @@ The purpose of this repository is to act as a **developer's reference guide and 
 Here is an architectural map of how files in this repository group by educational module:
 
 ```
-MyAgentic_RAG/
+Agentic-RAG-Cookbook/
 ├── Vector DBs & Indexing (Chroma, FAISS, Astra, Pinecone)
 │   ├── 01a_Create_Text_Files.py           # Prepares sample cybersecurity & tech datasets
 │   ├── 01a_Embedding_Check.py            # Diagnostic check for OpenAIEmbeddings dimensions
@@ -404,8 +404,8 @@ brew install uv
 
 1.  **Clone the Repository**:
     ```bash
-    git clone https://github.com/yourusername/MyAgentic_RAG.git
-    cd MyAgentic_RAG
+    git clone https://github.com/yourusername/Agentic-RAG-Cookbook.git
+    cd Agentic-RAG-Cookbook
     ```
 
 2.  **Synchronize Workspace & Virtual Environment**:
@@ -448,7 +448,7 @@ TAVILY_API_KEY=tvly-your-tavily-key
 
 # Debugging and Tracing
 LANGCHAIN_TRACING_V2=true
-LANGCHAIN_PROJECT=MyAgenticRAG-Sandbox
+LANGCHAIN_PROJECT=Agentic-RAG-Cookbook
 LANGCHAIN_API_KEY=lsv2_your-langsmith-key
 ```
 

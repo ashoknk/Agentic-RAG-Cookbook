@@ -25,7 +25,7 @@ from langchain_openai import OpenAIEmbeddings
 import warnings
 
 # Set a custom User-Agent identifying your application
-os.environ["USER_AGENT"] = "MyAgenticRAGApp/1.0 (contact: ashoknkjp@gmail.com)"
+os.environ["USER_AGENT"] = "Agentic-RAG-Cookbook/1.0 (contact: ashnaiku@codeaiwashnaiku.com)"
 
 
 
