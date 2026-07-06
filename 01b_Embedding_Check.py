@@ -44,7 +44,7 @@ def compare_embeddings(text1: str, text2: str):
 # 3. RUN SIMILARITY EXAMPLES
 # ==========================================
 # 1.0 (Maximum Match): The vectors point in the exact same direction (perfect similarity).
-# 0.0 (No Match / Orthogonal): The vectors are at a $90^\circ$ angle to each other, meaning they are completely unrelated or independent.
+# 0.0 (No Match / Orthogonal): The vectors are at a 90 degree angle to each other, meaning they are completely unrelated or independent.
 
 print("===== Semantic Similarity Testing =====")
 print(f"'AI' vs 'Artificial Intelligence': {compare_embeddings('AI', 'Artificial Intelligence'):.3f}")
