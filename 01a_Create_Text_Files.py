@@ -1,3 +1,22 @@
+"""
+================================================================================
+ RAW DATA GENERATION / MOCK INGESTION SOURCE
+================================================================================
+Purpose:
+    This script programmatically sets up the raw, unstructured text files that 
+    will serve as the foundational external knowledge base for our RAG pipeline.
+
+What it does:
+    1. Creates a local 'data/' directory if it doesn't already exist.
+    2. Writes distinct, domain-specific articles detailing core AI and RAG 
+       concepts (e.g., Chunking, Embeddings, Evaluation, Agents, Multi-Modal).
+    3. Serves as the starting point for simulating document ingestion workflows.
+
+Usage:
+    Run this file first to populate your sandbox environment with source files.
+================================================================================
+"""
+
 import os
 import sys
 

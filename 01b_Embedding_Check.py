@@ -1,3 +1,24 @@
+"""
+================================================================================
+EMBEDDING MECHANICS & SEMANTIC SIMILARITY CHECK
+================================================================================
+Purpose:
+    Provides a low-level, practical understanding of text embeddings and how 
+    computers mathematically calculate textual context and semantic similarity.
+
+What it does:
+    1. Connects to OpenAI's model via LangChain.
+    2. Converts raw text strings into fixed-length vectors.
+    3. Implements manual Cosine Similarity from scratch using numpy (`np.dot` 
+       and `np.linalg.norm`) to illustrate how vector alignment translates 
+       into numerical similarity scores.
+
+Key Concept:
+    - High match scores (closer to 1.0) mean high semantic similarity.
+    - Low match scores (closer to 0.0) mean unrelated concepts.
+================================================================================
+"""
+
 import os
 import warnings
 import numpy as np
