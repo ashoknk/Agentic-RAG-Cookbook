@@ -1,0 +1,10 @@
+
+
+# Ignore all hidden files and folders (those starting with a dot)
+.*
+.env
+.venv
+
+
+# Optional: If you want to make sure your .gitignore file itself is NOT ignored
+!.gitignore

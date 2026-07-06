@@ -1,0 +1,265 @@
+import os
+from dotenv import load_dotenv
+from langchain.agents import create_agent
+from langchain.agents.middleware import SummarizationMiddleware, HumanInTheLoopMiddleware
+from langgraph.checkpoint.memory import InMemorySaver
+from langchain_core.messages import HumanMessage
+from langchain_core.tools import tool
+from langgraph.types import Command
+
+# ### Middleware
+# 
+# Middleware provides a way to more tightly control what happens inside the agent. Middleware is useful for:
+# - Tracking agent behavior with logging, analytics, and debugging.
+# - Transforming prompts, tool selection, and output formatting.
+# - Adding retries, fallbacks, and early termination logic.
+# - Applying rate limits, guardrails, and PII detection.
+
+load_dotenv()
+os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+
+# ### Summarization MiddleWare
+# Automatically summarize conversation history when approaching token limits, 
+# preserving recent messages while compressing older context. Summarization is useful for the following:
+# - Long-running conversations that exceed context windows.
+# - Multi-turn dialogues with extensive history.
+# - Applications where preserving full conversation context matters.
+
+GPT_MODEL_SUMMARIZER = "gpt-4o-mini"
+# ### Messagebased summarization setup initialization instance
+agent_summarizer = create_agent(
+    model=GPT_MODEL_SUMMARIZER,
+    checkpointer=InMemorySaver(),
+    middleware=[
+        SummarizationMiddleware(
+            model=GPT_MODEL_SUMMARIZER,
+            trigger=("messages", 10),
+            keep=("messages", 4)
+        )
+    ]
+)
+
+# ### Run with thread id
+config = {"configurable": {"thread_id": "test-1"}}
+
+questions = [
+    "What is 2+2?",
+    "What is 10*5?",
+    "What is 100/4?",
+    "What is 15-7?",
+    "What is 3*3?",
+    "What is 4*4?",
+]
+
+for q in questions:
+    response = agent_summarizer.invoke({"messages": [HumanMessage(content=q)]}, config)
+    print(f"Messages: {response}")
+    print(f"Messages count limit total: {len(response['messages'])}")
+
+# ## Token context length tracking strategy implementation block
+@tool
+def search_hotels(city: str) -> str:
+    """Search hotels - returns long response to use more tokens."""
+    return f"""Hotels in {city}:
+    1. Grand Hotel - 5 star, $350/night, spa, pool, gym
+    2. City Inn - 4 star, $180/night, business center
+    3. Budget Stay - 3 star, $75/night, free wifi"""
+
+GPT_MODEL_TOKENLIMITER = "gpt-4o-mini"
+agent_token_limit = create_agent(
+    model=GPT_MODEL_TOKENLIMITER,
+    tools=[search_hotels],
+    checkpointer=InMemorySaver(),
+    middleware=[
+        SummarizationMiddleware(
+            model=GPT_MODEL_TOKENLIMITER,
+            trigger=("tokens", 550),
+            keep=("tokens", 200),
+        ),
+    ]
+)
+
+config_tokens = {"configurable": {"thread_id": "test-token-thread"}}
+
+
+def count_tokens(messages):
+    total_chars = sum(len(str(m.content)) for m in messages)
+    return total_chars // 4  # 4 chars ≈ 1 token
+
+
+cities = ["Paris", "London", "Tokyo", "New York", "Dubai", "Singapore"]
+
+for city in cities:
+    response_token = agent_token_limit.invoke(
+        {"messages": [HumanMessage(content=f"Find hotels in {city}")]},
+        config=config_tokens
+    )
+    tokens = count_tokens(response_token["messages"])
+    print(f"{city}: ~{tokens} tokens, {len(response_token['messages'])} messages")
+    print(response_token['messages'])
+
+# ### Fraction context threshold strategy verification segment
+@tool
+def search_hotels_short(city: str) -> str:
+    """Search hotels."""
+    return f"Hotels in {city}: Grand Hotel $350, City Inn $180, Budget Stay $75"
+
+GPT_MODEL_SUMMARIZER_FRACTION = "gpt-4o-mini"
+agent_fraction = create_agent(
+    model=GPT_MODEL_SUMMARIZER_FRACTION,
+    tools=[search_hotels_short],
+    checkpointer=InMemorySaver(),
+    middleware=[
+        SummarizationMiddleware(
+            model=GPT_MODEL_SUMMARIZER_FRACTION,
+            trigger=("fraction", 0.005),  # 0.5% = ~640 tokens
+            keep=("fraction", 0.002),     # 0.2% = ~256 tokens
+        ),
+    ],
+)
+
+config_fraction = {"configurable": {"thread_id": "test-fraction-thread"}}
+
+for city in cities:
+    response_frac = agent_fraction.invoke(
+        {"messages": [HumanMessage(content=f"Hotels in {city}")]},
+        config=config_fraction
+    )
+    tokens_frac = count_tokens(response_frac["messages"])
+    fraction_calc = tokens_frac / 128000  # gpt-4o-mini context window limit
+    print(f"{city}: ~{tokens_frac} tokens ({fraction_calc:.4%}), {len(response_frac['messages'])} msgs")
+    print(response_frac['messages'])
+
+# ### ==== Human In the Loop MiddleWare ==== ###
+# Pause agent execution for human approval, editing, or rejection of tool calls before they execute. 
+# Human-in-the-loop is useful for the following:
+# - High-stakes operations requiring human approval (e.g. database writes, financial transactions).
+# - Compliance workflows where human oversight is mandatory.
+# - Long-running conversations where human feedback guides the agent.
+
+def read_email_tool(email_id: str) -> str:
+    """Mock function to read an email by its ID."""
+    return f"Email content for ID: {email_id}"
+
+
+def send_email_tool(recipient: str, subject: str, body: str) -> str:
+    """Mock function to send an email."""
+    return f"Email sent to {recipient} with subject '{subject}'"
+
+#NOTE - use gpt-4o-mini if below does not work 
+agent_hitl = create_agent(
+    model="gpt-4o",
+    tools=[read_email_tool, send_email_tool],
+    checkpointer=InMemorySaver(),
+    middleware=[
+        HumanInTheLoopMiddleware(
+            interrupt_on={
+                "send_email_tool": {
+                    "allowed_decisions": ["approve", "edit", "reject"]
+                },
+                "read_email_tool": False,
+            }
+        )
+    ]
+)
+
+config_approve = {"configurable": {"thread_id": "test-approve"}}
+result_approve = agent_hitl.invoke(
+    {"messages": [HumanMessage(content="Send email to john@test.com with subject 'Hello' and body 'How are you?'")]},
+    config=config_approve
+)
+print(result_approve)
+
+# Step 2: Approve verification resume branch execution action sequence
+if "__interrupt__" in result_approve:
+    print("⏸️ Paused! Approving...")
+    result_approve = agent_hitl.invoke(
+        Command(resume={"decisions": [{"type": "approve"}]}),
+        config=config_approve
+    )
+    print(f"✅ Result: {result_approve['messages'][-1].content}")
+print(result_approve)
+
+# ### Reject handling logic structure implementation layer
+#NOTE - use gpt-4o-mini if below does not work 
+agent_reject = create_agent(
+    model="gpt-4o",
+    tools=[read_email_tool, send_email_tool],
+    checkpointer=InMemorySaver(),
+    middleware=[
+        HumanInTheLoopMiddleware(
+            interrupt_on={
+                "send_email_tool": {
+                    "allowed_decisions": ["approve", "edit", "reject"],
+                },
+                "read_email_tool": False,
+            }
+        ),
+    ],
+)
+
+config_reject = {"configurable": {"thread_id": "test-reject"}}
+result_reject = agent_reject.invoke(
+    {"messages": [HumanMessage(content="Send email to john@test.com with subject 'Hello' and body 'How are you?'")]},
+    config=config_reject
+)
+
+if "__interrupt__" in result_reject:
+    print("⏸️ Paused! Approving...")
+    result_reject = agent_reject.invoke(
+        Command(resume={"decisions": [{"type": "reject"}]}),
+        config=config_reject
+    )
+    print(f"✅ Result: {result_reject['messages'][-1].content}")
+print(result_reject)
+
+# ### Editing handling pattern sequence block
+#NOTE - use gpt-4o-mini if below does not work 
+agent_edit = create_agent(
+    model="gpt-4o",
+    tools=[read_email_tool, send_email_tool],
+    checkpointer=InMemorySaver(),
+    middleware=[
+        HumanInTheLoopMiddleware(
+            interrupt_on={
+                "send_email_tool": {
+                    "allowed_decisions": ["approve", "edit", "reject"],
+                },
+                "read_email_tool": False,
+            }
+        ),
+    ],
+)
+
+config_edit = {"configurable": {"thread_id": "test-edit"}}
+result_edit = agent_edit.invoke(
+    {"messages": [HumanMessage(content="Send email to wrong@email.com with subject 'Test' and body 'Hello'")]},
+    config=config_edit
+)
+print(result_edit)
+
+# Step 2: Edit parameters inline and approve to finalize workflow execution
+if "__interrupt__" in result_edit:
+    print("⏸️ Paused! Editing...")
+    result_edit = agent_edit.invoke(
+        Command(
+            resume={
+                "decisions": [
+                    {
+                        "type": "edit",
+                        "edited_action": {
+                            "name": "send_email_tool",
+                            "args": {
+                                "recipient": "correct@email.com",
+                                "subject": "Corrected Subject",
+                                "body": "This was edited by human before sending"
+                            }
+                        }
+                    }
+                ]
+            }
+        ),
+        config=config_edit
+    )
+    print(f"✏️ Result: {result_edit['messages'][-1].content}")
+print(result_edit)

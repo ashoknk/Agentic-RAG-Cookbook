@@ -1,0 +1,9 @@
+[project]
+name = "26-debugging-openai"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "langchain-openai>=1.1.12",
+]
