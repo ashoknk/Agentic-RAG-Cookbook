@@ -1,0 +1,6 @@
+Evaluation of RAG Systems (RAGAS)
+
+        Evaluating the performance of a RAG pipeline is complex because it requires measuring both the quality of the retrieved context and the quality of the generated response. Traditional NLP metrics like BLEU or ROUGE are insufficient because they look for exact word matches rather than factual correctness or semantic alignment.
+        Modern evaluation frameworks, such as RAGAS (Retrieval Augmented Generation Assessment), rely on LLMs acting as judges to systematically score the pipeline.
+        The evaluation process is broken into core metrics: faithfulness, answer relevance, and context precision. Faithfulness measures whether the LLM's final answer is strictly grounded in the retrieved context, capturing potential hallucinations.
+        Answer relevance assesses how well the generated response directly answers the user's question. Context precision and context recall evaluate the retrieval engine itself, ensuring that the vector database returned all the necessary information and minimized irrelevant data.

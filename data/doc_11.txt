@@ -1,0 +1,6 @@
+Agents and Tool Use (Function Calling)
+
+        AI Agents represent a paradigm shift from rigid, sequential chains to dynamic, autonomous systems driven by LLMs. An agent uses an LLM as a central reasoning engine to evaluate user intent, formulate an execution plan, and dynamically choose which actions to take.
+        Instead of simply generating a text response, the agent can stop, call external tools, analyze the tool's output, and loop through this cycle until it successfully solves the prompt.
+        Tool use, often referred to as function calling, is the mechanism that gives language models hands to interact with the digital world. By providing the LLM with structured JSON descriptions of external APIs, databases, or python scripts, the model can explicitly output an execution request (like generating a SQL query or a web search parameter) rather than conversational text.
+        This allows agents to fetch real-time weather information, query corporate databases, calculate complex math, or execute code securely.

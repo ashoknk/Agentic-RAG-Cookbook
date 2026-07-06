@@ -1,0 +1,6 @@
+Multi-Modal AI and Multimodal RAG
+
+        Multi-Modal AI refers to artificial intelligence models capable of processing, understanding, and generating multiple distinct types of data modalities, such as text, images, audio, and video, simultaneously. Early AI systems were strictly single-modality text or image networks.
+        Modern multi-modal models utilize a shared embedding space where visual tokens and linguistic tokens are mapped together, enabling a model to look at a chart or a diagram and reason about it using natural language text.
+        Multimodal RAG extends the standard retrieval architecture to incorporate unstructured visual data alongside text repositories. In a multimodal RAG setup, document loaders utilize OCR (Optical Character Recognition) and vision models to parse PDFs containing complex tables, infographics, and images.
+        These visual elements are either converted into detailed textual summaries or embedded directly using multimodal models like CLIP, allowing a user to query a database and retrieve not just matching paragraphs, but the exact relevant diagrams and images.
