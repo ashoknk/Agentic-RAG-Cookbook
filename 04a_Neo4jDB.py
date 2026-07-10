@@ -1,3 +1,34 @@
+"""
+================================================================================
+This script demonstrates how to integrate a Graph Database (Neo4j) with a Large 
+Language Model (LLM via Groq) using LangChain. It showcases a modern "GraphRAG" 
+pattern where natural language questions are translated into Cypher database 
+queries automatically by an LLM.
+
+PREREQUISITES:
+- A running Neo4j database instance.
+- Environment variables configured in a `.env` file:  NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD, and GROQ_API_KEY.
+
+THE LOGICAL FLOW:
+1. DATA SEEDING: Run a Cypher command (`LOAD CSV`) to ingest a small dataset of 
+   movies, actors, directors, and genres into the graph database.
+2. GRAPH SCHEMA: Neo4j's schema is refreshed and fed into LangChain so the LLM 
+   understands the database structure.
+3. CHAIN CONFIGURATION: A `GraphCypherQAChain` is built using the Neo4j graph 
+   and a Groq-hosted LLM.
+4. EXECUTION & EVALUATION: A series of natural language queries are executed to 
+   test everything from simple properties to multi-hop relationship traversals 
+   and aggregations.
+
+DATABASE SCHEMA CREATED:
+------------------------
+Nodes:  (:Movie), (:Person), (:Genre)
+Edges:  (:Person)-[:DIRECTED]->(:Movie)
+        (:Person)-[:ACTED_IN]->(:Movie)
+        (:Movie)-[:IN_GENRE]->(:Genre)
+================================================================================
+"""
+
 import os
 import warnings
 from dotenv import load_dotenv

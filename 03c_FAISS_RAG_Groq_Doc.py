@@ -1,3 +1,21 @@
+"""
+================================================================================
+This script is a comprehensive architectural guide demonstrating three core 
+flavors of Retrieval-Augmented Generation (RAG) using LangChain Expression Language 
+(LCEL) and a cloud-hosted Llama-3.1 model via Groq. It takes static, in-memory documents 
+and binds them to interactive, intelligent system runtime components.
+
+1. STANDARD/SYNCHRONOUS RAG: Collects context, queries the LLM, and suppresses 
+   terminal streaming output to return a single, cleanly parsed string at the 
+   very end of generation.
+2. STREAMING RAG: Leverages the generator patterns of LLMs to display response tokens 
+   piece-by-piece in real-time for highly responsive terminal or web user interfaces.
+3. CONVERSATIONAL (CHAT HISTORY) RAG: Implements dialogue state persistence. It uses 
+   historical message arrays to ground follow-up questions contextually, enabling 
+   accurate multi-turn interaction.
+================================================================================
+"""
+
 import os
 import warnings
 from typing import List
@@ -101,7 +119,7 @@ simple_rag_chain_lcel = (
     | StrOutputParser()
 )
 
-# NOTE: just for testing purposes
+# HACK: just for testing purposes
 # response=simple_rag_chain_lcel.invoke("What is Deep Learning")
 # response
 # retriever.invoke("What is Deep Learning")
@@ -163,7 +181,6 @@ def test_standard_chains_lcel(question):
         print(doc.page_content[:200] + "...")
        
 
-
 def test_standard_chains_stream(question: str):
     print(f"\n--- Testing Simple and Streaming Chains ---")
     print(f"Question: {question}\n")
@@ -177,6 +194,7 @@ def test_standard_chains_stream(question: str):
     for chunk in streaming_rag_chain.stream(question):
         print(chunk.content, end="", flush=True)
     print("\n")
+
 
 def test_conversational_chain(question: str, followup: str):
     print(f"--- Testing Conversational RAG ---")
@@ -192,6 +210,7 @@ def test_conversational_chain(question: str, followup: str):
     a2 = conversational_rag.invoke({"input": followup, "chat_history": history})
     print(f"Q2: {followup}\nA2: {a2}")
 
+
 if __name__ == "__main__":
     question1 = "What is the difference between AI and machine learning?"
     test_standard_chains_lcel(question1)
@@ -200,6 +219,4 @@ if __name__ == "__main__":
     print("="*50)
 
     question2 = "What is machine learning?"
-    question2_followup = "What is machine learning?"
-    # test_conversational_chain("What is the difference between AI and machine learning?")
-    test_conversational_chain(question2, question2_followup)
+    question2_followup = "how it is difference from AI?"

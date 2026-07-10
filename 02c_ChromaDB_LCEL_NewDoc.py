@@ -1,42 +1,43 @@
-# ==============================================================================
-# ARCHITECTURAL COMPARISON: 02b_RAGChainSample vs. 02c_LCEL_NewDoc
-# ------------------------------------------------------------------------------
-# Both files build fully functional RAG pipelines, but they use entirely 
-# different underlying paradigms to assemble the components and handle the lifecycle.
-#
-# KEY ARCHITECTURAL DIFFERENCES & IMPROVEMENTS IN 02c:
-#
-# 1. CLASSIC CHAINS VS. LCEL DECORATIVE SYNTAX (LangChain Expression Language)
-#    - 02b (Classic Chains): Uses legacy wrapper functions like `create_retrieval_chain` 
-#      and `create_stuff_documents_chain` which encapsulate the pipeline under the hood. 
-#      The data flow is handled automatically but is less transparent.
-#    - 02c (LCEL Pipes): Explicitly constructs the pipeline step-by-step using the Linux 
-#      pipe operator (`|`). This approach is more transparent, modular, and customizable, 
-#      making it the modern standard for advanced LangChain development.
-#
-# 2. RUNNABLEPASSTHROUGH & INPUT ROUTING
-#    - 02c utilizes `RunnablePassthrough()` to perfectly control the dictionary keys. 
-#      When a question string is passed to `rag_chain.invoke(question)`:
-#        a) The question string bypasses formatting and is sent as-is into the 
-#           'question' key via `RunnablePassthrough()`.
-#        b) The same question string is simultaneously routed through the retriever, 
-#           and the resulting documents are fed into `format_docs` to build the 'context' key.
-#
-# 3. STROUTPUTPARSER FOR CLEANER OUTPUTS
-#    - 02b returns a complex dictionary containing keys like `['answer']` and `['context']`.
-#    - 02c appends `| StrOutputParser()` at the end of the execution stream. This instantly 
-#      intercepts the raw AI message chunk, extracts only the text body, and streams back 
-#      a clean Python string directly, eliminating dictionary parsing boilerplate.
-#
-# 4. STATIC RETRIEVAL VS. DYNAMIC VECTOR STORE UPDATING
-#    - 02b is read-only; it connects to a predefined, static vector index and runs queries.
-#    - 02c implements a mutable database lifestyle. It introduces an interactive 
-#      `add_new_documents()` execution sequence that processes a raw string token on the fly, 
-#      chunks it with `text_splitter`, and dynamically updates the persistent ChromaDB collection
-#      using `vectorstore.add_documents()`
-#    - 02c performs an immediate validation check by running queries like "What are the 
-#      key concepts in reinforcement learning?" both before and after the database update.
-# ==============================================================================
+"""==============================================================================
+ARCHITECTURAL COMPARISON: 02b_RAGChainSample vs. 02c_LCEL_NewDoc
+------------------------------------------------------------------------------
+Both files build fully functional RAG pipelines, but they use entirely 
+different underlying paradigms to assemble the components and handle the lifecycle.
+
+KEY ARCHITECTURAL DIFFERENCES & IMPROVEMENTS IN 02c:
+
+1. CLASSIC CHAINS VS. LCEL DECORATIVE SYNTAX (LangChain Expression Language)
+   - 02b (Classic Chains): Uses legacy wrapper functions like `create_retrieval_chain` 
+     and `create_stuff_documents_chain` which encapsulate the pipeline under the hood. 
+     The data flow is handled automatically but is less transparent.
+   - 02c (LCEL Pipes): Explicitly constructs the pipeline step-by-step using the Linux 
+     pipe operator (`|`). This approach is more transparent, modular, and customizable, 
+     making it the modern standard for advanced LangChain development.
+
+2. RUNNABLEPASSTHROUGH & INPUT ROUTING
+   - 02c utilizes `RunnablePassthrough()` to perfectly control the dictionary keys. 
+     When a question string is passed to `rag_chain.invoke(question)`:
+       a) The question string bypasses formatting and is sent as-is into the 
+          'question' key via `RunnablePassthrough()`.
+       b) The same question string is simultaneously routed through the retriever, 
+          and the resulting documents are fed into `format_docs` to build the 'context' key.
+
+3. STROUTPUTPARSER FOR CLEANER OUTPUTS
+   - 02b returns a complex dictionary containing keys like `['answer']` and `['context']`.
+   - 02c appends `| StrOutputParser()` at the end of the execution stream. This instantly 
+     intercepts the raw AI message chunk, extracts only the text body, and streams back 
+     a clean Python string directly, eliminating dictionary parsing boilerplate.
+
+4. STATIC RETRIEVAL VS. DYNAMIC VECTOR STORE UPDATING
+   - 02b is read-only; it connects to a predefined, static vector index and runs queries.
+   - 02c implements a mutable database lifestyle. It introduces an interactive 
+     `add_new_documents()` execution sequence that processes a raw string token on the fly, 
+     chunks it with `text_splitter`, and dynamically updates the persistent ChromaDB collection
+     using `vectorstore.add_documents()`
+   - 02c performs an immediate validation check by running queries like "What are the 
+     key concepts in reinforcement learning?" both before and after the database update.
+==============================================================================
+"""
 
 import os
 import warnings
@@ -46,17 +47,19 @@ from langchain.chat_models.base import init_chat_model
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain_community.vectorstores import Chroma
-from langchain_core.documents import Document
-from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnablePassthrough
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+from langchain_core.runnables import RunnablePassthrough
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.documents import Document
 
 warnings.filterwarnings('ignore')
 load_dotenv()
 
 DATA_DIR = 'data'
 PERSIST_DIRECTORY = './chroma_db'
+COLLECTION_NAME = 'rag_collection'  # collection_name acts as a unique namespace that groups and stores your specific embeddings
 
 # Load documents from the local directory
 def load_documents(data_dir: str):
@@ -71,6 +74,9 @@ def load_documents(data_dir: str):
     return documents
 
 # Initialize text splitter
+# length_function=len tells the algorithm how to calculate the size of a chunk. 
+#  By using len, you are instructing the splitter to use standard character counts to evaluate chunk_size=500
+#  If you do not specify length_function, absolutely nothing changes because len is already the default value.
 def make_text_chunks(documents):
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=500,
@@ -85,14 +91,12 @@ def make_text_chunks(documents):
 ## Initialize Chromadb with Open AI embeddings
 def create_vector_store(chunks, persist_directory: str):
 
-    # NOTE test with dimensions=1536 if needed 
-
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-small", dimensions=512)
+    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
     vectorstore = Chroma.from_documents(
         documents=chunks,
         embedding=embeddings,
         persist_directory=persist_directory,
-        collection_name='rag_collection',
+        collection_name=COLLECTION_NAME,
     )
     print(f'Vector store created with {vectorstore._collection.count()} vectors.')
     print(f'Persisted to: {persist_directory}')
@@ -105,7 +109,7 @@ def build_retriever(vectorstore):
 # ==========================================
 # Part1 : Create a custom prompt using RunnablePassthrough, retriever and format_docs()
 # ==========================================
-
+# Create RAG Chain Alternative - Using LCEL (LangChain Expression Language)    
 # ChatPromptTemplate.from_template 
 #    - EXPECTS: A single, raw, continuous text string.
 #    - BEHAVIOR: It automatically creates a default "Human" message role under 
@@ -113,8 +117,14 @@ def build_retriever(vectorstore):
 #    - BEST FOR: Simple, linear prompts or quick LCEL chains where you just want 
 #      to drop variables like {context} and {question} into a static block of text
 
+# `RunnablePassthrough()` to perfectly control the dictionary keys. The question string bypasses formatting and 
+# is sent as-is into the 'question' key via `RunnablePassthrough()`.
+
+# appends `| StrOutputParser()` at the end of the execution stream. 
+# This instantly intercepts the raw AI message chunk, extracts only the text body
+
 def build_rag_chain(retriever):
-    llm = init_chat_model('openai:gpt-3.5-turbo')
+    llm=init_chat_model("openai:gpt-4o-mini")
     prompt = ChatPromptTemplate.from_template(
         '''Use the following context to answer the question.
 If you don't know the answer based on the context, say you don't know.
@@ -139,7 +149,7 @@ Answer:''' )
     return rag_chain
 
 
-# Create RAG Chain Alternative - Using LCEL (LangChain Expression Language)    
+
 def query_rag_lcel(question: str, rag_chain, retriever):
     print(f'Question: {question}')
     print('-' * 50)
@@ -159,6 +169,8 @@ def query_rag_lcel(question: str, rag_chain, retriever):
 # ==========================================
 ### Part2 : Add New Documents To Existing Vector Store ###
 # ==========================================
+#  Processes a raw string token on the fly, chunks it with `text_splitter`, 
+#  and dynamically updates the persistent ChromaDB collection using `vectorstore.add_documents()`
 def add_new_documents(vectorstore, text_splitter):
     new_document = '''
 Reinforcement Learning in Detail
@@ -177,6 +189,8 @@ robotics, and autonomous systems.
         metadata={'source': 'manual_addition', 'topic': 'reinforcement_learning'},
     )
     new_chunks = text_splitter.split_documents([new_doc])
+    # NOTE Just for testing
+    # print(f'Total vectors before: {vectorstore._collection.count()}.')
     vectorstore.add_documents(new_chunks)
 
     print(f'Added {len(new_chunks)} new chunks to the vector store.')

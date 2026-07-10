@@ -1,3 +1,28 @@
+"""
+================================================================================
+This script serves as an introductory laboratory for understanding the base 
+mechanics of LangChain vector stores using an ephemeral, in-memory database 
+(`InMemoryVectorStore`). It is designed to isolate and teach vector storage 
+and retrieval dynamics without the added complexity of setting up external cloud infrastructure.
+
+- `InMemoryVectorStore`: Stores high-dimensional embedding vectors inside a simple 
+  Python dictionary or NumPy array residing fully in volatile RAM. Data is 
+  completely wiped upon program shutdown.
+- Native Engines (FAISS, Chroma, Pinecone): Built with optimized indexing 
+  architectures, supporting native disk persistence and massive scalability.
+
+1. INITIALIZATION: Setup OpenAI embedding configurations using `text-embedding` 
+   compressed to a lightweight 512 dimensions for rapid runtime calculation.
+2. RAM INGESTION: Creates a diverse mockup dataset of raw text `Document` objects 
+   (tweets, news articles, web text) and writes them to the RAM array.
+3. CORE RETRIEVAL PATTERNS:
+   - **Method A (`similarity_search`)**: Directly executes mathematical vector 
+     comparisons on the store object, returning standard Python document lists.
+   - **Method B (`as_retriever`)**: Wraps the raw store inside the standardized LangChain 
+     Retriever interface, outputting an execution-ready `Runnable` component.
+================================================================================
+"""
+
 import os
 from dotenv import load_dotenv
 from langchain_openai import OpenAIEmbeddings

@@ -1,3 +1,18 @@
+"""
+================================================================================
+This script advances the data ingestion layer by shifting away from trivial, 
+hardcoded lists to a structural pipeline that scans, imports, and processes raw 
+unstructured text files (`*.txt`) living within a local directory.
+
+1. DISK FILESYSTEM SCANNING: Coordinates a `DirectoryLoader` combined with a 
+   `TextLoader` to seamlessly ingest bulk, external disk files into LangChain memory.
+2. RECURSIVE CHUNKING: Normalizes varying document lengths into structured 500-character 
+   blocks bounded cleanly by white spaces.
+3. BATCH EMBEDDING CALCULATIONS: Vectorizes text chunks concurrently via the OpenAI API.
+4. STORAGE DEPLOYMENT: Compiles a production-ready FAISS repository on local storage 
+   at `./faiss_textfile`, outputting index files ready for consumption by downstream apps.
+================================================================================
+"""
 import os
 import warnings
 from dotenv import load_dotenv

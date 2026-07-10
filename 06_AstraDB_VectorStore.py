@@ -1,3 +1,25 @@
+"""
+================================================================================
+This script transitions the codebase from volatile local RAM to a persistent, 
+enterprise-ready production architecture using DataStax Astra DB. Astra DB is a 
+cloud-native, serverless vector database built on Apache Cassandra, providing 
+scalable cloud storage for vectorized applications.
+
+1. SECURITY & CONNECTION: Validates and authenticates secure cloud connection 
+   endpoints and tokens loaded safely from environmental configurations.
+2. CLOUD INGESTION: Instantiates `AstraDBVectorStore`. Passing raw text documents 
+   automatically triggers a network call to the OpenAI API to calculate embeddings 
+   before committing them over the wire to the cloud collection.
+3. ADVANCED METADATA FILTERING: Demonstrates database-level filtering using metadata 
+   properties (e.g., scoping search spaces strictly to `{"source": "tweet"}`).
+4. ADVANCED RETRIEVAL SEARCH TYPES:
+   - **Similarity Score Threshold**: Introduces a fallback strictness ceiling, 
+     pruning away irrelevant matches that drop below a semantic confidence metric.
+   - **MMR (Maximum Marginal Relevance)**: Minimizes redundancy in the retrieved output, 
+     balancing strict query alignment with informational diversity.
+================================================================================
+"""
+
 import os
 import warnings
 from dotenv import load_dotenv

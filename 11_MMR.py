@@ -3,6 +3,28 @@ Maximal Marginal Relevance
 MMR (Maximal Marginal Relevance) is a powerful diversity-aware retrieval technique used in information retrieval and RAG pipelines to balance relevance and novelty when selecting documents.
 Imagine you ask a friend for book recommendations about space, and instead of giving you three different books on astronauts, they give you one on astronauts, one on planets, and one on alien life. That is exactly what **MMR** does for your AI search engine. While standard search only looks for the closest matching answers, MMR actively penalizes repetitive information. It forces the database to select chunks that are highly relevant to your question, but completely different from one another in text content. This ensures your LLM gets a well-rounded, diverse snapshot of information instead of reading the exact same fact repeated three times.
 """
+
+"""
+================================================================================
+This script introduces **Maximal Marginal Relevance (MMR)**, an advanced, 
+diversity-aware retrieval algorithm. While normal vector search exclusively 
+grabs the closest documents in vector space (which often leads to repetitive text), 
+MMR mathematically penalizes redundancy. It selects document chunks that are 
+highly relevant to the user query yet distinctly different from one another, 
+ensuring the downstream LLM receives a comprehensive, well-rounded overview.
+
+
+1. TEXT INGESTION: Loads a multi-topic cybersecurity reference dataset and splits it into fine-grained character segments.
+2. FAISS EMBEDDING ROUTING: Populates a local FAISS index using vector representations 
+   generated via a local HuggingFace embedding engine (`all-MiniLM-L6-v2`).
+3. RETRIEVER DIVERSIFICATION: Switches the vector store strategy by explicitly setting 
+   `search_type="mmr"`. This instructs the underlying database engine to swap 
+   its retrieval math to filter out overlapping context clusters automatically.
+4. END-TO-END VALIDATION: Executes complex multi-domain infrastructure queries 
+   to demonstrate how MMR extracts highly distinct, non-repetitive chunks  across disparate topics.
+================================================================================
+"""
+
 import os
 import logging
 import warnings

@@ -37,7 +37,7 @@ from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnablePassthrough
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+# from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.messages import HumanMessage, AIMessage
 
 # Modified Chain Imports using langchain_classic
@@ -49,6 +49,7 @@ load_dotenv()
 
 DATA_DIR = 'data'
 PERSIST_DIRECTORY = './chroma_db'
+COLLECTION_NAME = 'rag_collection'  # collection_name acts as a unique namespace that groups and stores your specific embeddings
 
 # ==========================================
 # 1. INITIALIZE COMPONENTS
@@ -63,20 +64,15 @@ embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
 vectorstore = Chroma(
     persist_directory=PERSIST_DIRECTORY,
     embedding_function=embeddings,
-    collection_name="rag_collection"
+    collection_name=COLLECTION_NAME
 )
 
-# Convert vector store to retriever
+# Convert vector store to retriever. Retrieve top 3 relevant chunks
 retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 
 # ==========================================
 # 2. CONTEXTUALIZE QUESTION (History-Aware)
 # ==========================================
-#TODO make this prompt better or different
-# contextualize_q_system_prompt = """Given a chat history and the latest user question 
-# which might reference context in the chat history, formulate a standalone question 
-# which can be understood without the chat history. Do NOT answer the question, 
-# just reformulate it if needed and otherwise return it as is."""
 
 contextualize_q_system_prompt = """You are an expert query-reformulation assistant. 
 Your task is to analyze a conversation history and a new user question. 
@@ -150,7 +146,7 @@ chat_history.extend([
 ])
 
 # Follow up question
-followup_question1 = "What are its main types?"
+followup_question1 = "What are its main types?" # "its" refers back to history
 result1_followup = conversational_rag_chain.invoke({
     "chat_history": chat_history,
     "input": followup_question1  # Refers back to ML
@@ -178,7 +174,7 @@ chat_history.extend([
 ])
 
 # Follow up question
-followup_question2 = "What are its main types?"
+followup_question2 = "What are its main types?" # "its" refers back to history
 result2_followup = conversational_rag_chain.invoke({
     "chat_history": chat_history,
     "input": followup_question2  # Refers back to ML

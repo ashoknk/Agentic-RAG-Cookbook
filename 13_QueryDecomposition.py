@@ -1,12 +1,33 @@
-# ### 🧠 What is Query Decomposition?
-# Query decomposition is the process of taking a complex, multi-part question and 
-# breaking it into simpler, atomic sub-questions that can each be retrieved and answered individually.
+"""
+### 🧠 What is Query Decomposition?
+Query decomposition is the process of taking a complex, multi-part question and 
+breaking it into simpler, atomic sub-questions that can each be retrieved and answered individually.
 
-# #### ✅ Why Use Query Decomposition?
-# - Complex queries often involve multiple concepts
-# - LLMs or retrievers may miss parts of the original question
-# - It enables multi-hop reasoning (answering in steps)
-# - Allows parallelism (especially in multi-agent frameworks)
+#### ✅ Why Use Query Decomposition?
+- Complex queries often involve multiple concepts
+- LLMs or retrievers may miss parts of the original question
+- It enables multi-hop reasoning (answering in steps)
+- Allows parallelism (especially in multi-agent frameworks)
+================================================================================
+This script introduces **Query Decomposition**, a multi-hop reasoning strategy 
+designed to conquer complex, multi-part questions. When a question contains 
+cross-framework comparisons or multi-layered tasks, standard retrieval chains 
+often suffer from information dilution. This workflow leverages an LLM to 
+break a single problem down into an array of isolated, simple sub-questions.
+
+
+1. INGESTION & SEARCH ENGINE SETUP: Ingests reference materials, indexing them 
+   into a local FAISS vector store bound to a diversity-optimized MMR retriever.
+2. ATOMIC DECOMPOSITION LAYER: Directs a specialized LLM sequence to analyze a 
+   complex prompt (e.g., comparing memory and agents across LangChain and CrewAI) 
+   and decompose it into 2-4 individual sub-questions.
+3. SEQUENTIAL INVOCATION LOOP: Sanitizes and splits the generated list into a clean 
+   Python array. The script iterates through the list sequentially, launching 
+   separate retrieval and answer-generation queries for each sub-question.
+4. REPORT FUSION: Accumulates the individually grounded answers, merging them 
+   into a comprehensive, final response framework.
+================================================================================
+"""
 
 import os
 import logging

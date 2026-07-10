@@ -1,3 +1,18 @@
+"""
+================================================================================
+The final link in the local pipeline sequence. This script ties the file-ingested 
+FAISS vector store (`./faiss_textfile`) directly to the end-to-end RAG application 
+framework driven by a Groq inference engine. 
+
+1. DATABASE CONNECTIVITY: Deserializes the directory-persisted file database index 
+   and links it to a localized vector space retriever object.
+2. LCEL PIPELINE ASSEMBLIES: Maps out clean functional orchestrations handling 
+   dynamic template interpolation, background prompt generation, and direct LLM calls.
+3. MULTI-PATTERN RUNTIMES: Validates the end-to-end system across standard, 
+   real-time streaming, and history-aware conversational modes utilizing text file knowledge.
+================================================================================
+"""
+
 import os
 import warnings
 from typing import List
@@ -137,6 +152,7 @@ def test_standard_chains_lcel(question: str):
         print(f"\n     --- Source {i+1} ---")
         print(doc.page_content[:200] + "...")
 
+
 def test_standard_chains_stream(question: str):
     print(f"\n--- Testing Simple and Streaming Chains ---")
     print(f"\tQuestion: {question}\n")
@@ -148,6 +164,7 @@ def test_standard_chains_stream(question: str):
     for chunk in streaming_rag_chain.stream(question):
         print(chunk.content, end="", flush=True)
     print("\n")
+
 
 def test_conversational_chain(question: str, followup: str):
     print(f"--- Testing Conversational RAG ---")
@@ -162,6 +179,7 @@ def test_conversational_chain(question: str, followup: str):
     # Round 2 (Context-dependent)
     a2 = conversational_rag.invoke({"input": followup, "chat_history": history})
     print(f"\tQ2: {followup}\n\tA2: {a2}")
+
 
 if __name__ == "__main__":
     test_query = "What is the difference between AI and machine learning?"

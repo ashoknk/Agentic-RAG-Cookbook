@@ -1,15 +1,35 @@
-# Query Enhancement – Query Expansion Techniques
-# In a RAG pipeline, the quality of the query sent to the retriever determines 
-# how good the retrieved context is—and therefore, how accurate the LLM’s final answer will be. 
-# That’s where Query Expansion/Enhancement comes in.
 
-# 🎯 What is Query Enhancement?
-# Query enhancement refers to techniques used to improve or reformulate the user query to 
-# retrieve better, more relevant documents from the knowledge base. 
-# It is especially useful when:
-# The original query is short, ambiguous, or under-specified.
-# You want to broaden the scope to catch synonyms, related phrases, or spelling variants
-# By expanding the query, you can increase the chances of retrieving relevant documents that may not match the original query verbatim but are still highly pertinent to the user’s intent.
+"""
+Query Enhancement – Query Expansion Techniques
+In a RAG pipeline, the quality of the query sent to the retriever determines 
+how good the retrieved context is—and therefore, how accurate the LLM’s final answer will be. 
+That’s where Query Expansion/Enhancement comes in.
+
+🎯 What is Query Enhancement?
+Query enhancement refers to techniques used to improve or reformulate the user query to 
+retrieve better, more relevant documents from the knowledge base. 
+It is especially useful when:
+The original query is short, ambiguous, or under-specified.
+You want to broaden the scope to catch synonyms, related phrases, or spelling variants
+By expanding the query, you can increase the chances of retrieving relevant documents that may not match the original query verbatim but are still highly pertinent to the user’s intent.
+
+================================================================================
+This script showcases **Query Expansion**, an elite query enhancement method 
+designed to solve the "short query" problem in RAG systems. When users submit 
+vague or brief questions, vector models can struggle to find direct keyword alignment. 
+This architecture forces an LLM to preprocess and rewrite the prompt, loading it 
+with rich technical vocabulary, domain synonyms, and deeper context *before* the vector database is ever touched.
+
+1. VECTOR PREPARATION: Mounts a cybersecurity text knowledge base into a FAISS  vector store leveraging HuggingFace embedding calculations.
+2. QUERY EXPANSION CHAIN: Configures an independent, isolated LCEL sequence that 
+   intercepts the user's raw string and instructs an LLM (`o4-mini`) to expand it 
+   into a technically dense search paragraph.
+3. LCEL RUNNABLEMAP COORDINATION: Chains the components into a single pipeline. 
+   The output of the query expansion chain is dynamically routed as the search criteria for the vector store's MMR retriever.
+4. STREAMLINED RESPONSE: Passes the rich, expanded-context documents into the final 
+   answering prompt template to generate highly accurate summaries.
+================================================================================
+"""
 
 import os
 import logging

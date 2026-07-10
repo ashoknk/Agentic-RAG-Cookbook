@@ -1,3 +1,29 @@
+"""
+================================================================================
+This script introduces the robust industry architecture known as **Hybrid RAG** or **Ensemble Retrieval**. By blending semantic understanding with structural syntax 
+matching, this design addresses the retrieval blind spots found in isolated 
+dense or sparse strategies.
+
+THE COMPONENT TRIAD:
+- **Component A: Dense Retriever (The Smart Assistant)**: 
+    Employs a local HuggingFace embedding model (`all-MiniLM-L6-v2`) and FAISS to decode conceptual meaning and 
+  synonyms. Excellent for abstract, intent-driven searches.
+- **Component B: Sparse Retriever (The Keyword Filter)**: 
+    Leverages a traditional BM25 algorithm to look for exact keyword overlapping. Crucial for capturing 
+  hyper-specific technical acronyms, names, or short numeric code strings.
+- **Component C: Ensemble Layer (The Hybrid Orchestrator)**: 
+    Fuses both retrievers together using a custom weighting spectrum (e.g., 70% Dense trust vs. 30% Sparse trust).
+
+THE LOGICAL FLOW & DIAGNOSTIC TESTS:
+1. INITIALIZATION: Builds separate Dense (FAISS) and Sparse (BM25) retriever channels.
+2. HYBRID COMBINATION: Passes both streams into `EnsembleRetriever` to merge results.
+3. RAG CHAIN CREATION: Assembles standard LangChain retrieval tools (`create_retrieval_chain`).
+4. COMPARATIVE PROOF CASES: Runs target queries demonstrating where Dense triumphs 
+   (deciphering abstract terms like "marine organism system" to locate a reef) 
+   and where Sparse rules (catching exact hits for specific terms like "qubits").
+================================================================================
+"""
+
 import os
 import logging
 import warnings

@@ -1,37 +1,39 @@
-# ==============================================================================
-# ARCHITECTURAL COMPARISON: 02a_ChromaDB_Sample vs. 02b_ChromaDB_RAGChainSample
-# ------------------------------------------------------------------------------
-# While both files connect to ChromaDB, file 02b introduces a Large Language 
-# Model (LLM) and LangChain's retrieval chains. This shifts the codebase from 
-# a simple document search engine to an intelligent question-answering system.
-#
-# KEY IMPROVEMENTS OF 02b OVER 02a:
-#
-# 1. RAW RETRIEVAL VS. NATURAL RESPONSES
-#    - 02a (Vector Search Only): Only locates and prints raw, jagged text chunks 
-#      exactly as they are written in your files. If the answer is split or messy, 
-#      the user has to read through the raw data manually to find the answer.
-#    - 02b (Integrated LLM): Takes those raw text chunks and feeds them to 
-#      "gpt-4o-mini". The LLM synthesizes, filters, and rewrites the data into 
-#      a highly concise, accurate, and human-readable response.
-#
-# 2. CONTEXT STUFFING (create_stuff_documents_chain)
-#    - 02b introduces a unified pipeline that automatically "stuffs" all matching 
-#      database text chunks directly into a single system prompt template context 
-#      window before communicating with OpenAI.
-#
-# 3. END-TO-END AUTOMATION (create_retrieval_chain)
-#    - In 02a, you have to query the database, capture the documents, and handle 
-#      the output manually. 
-#    - In 02b, calling `rag_chain.invoke()` handles the entire lifecycle in a single 
-#      step: it converts the query to a vector, searches ChromaDB, passes the hits 
-#      to the prompt template, queries the LLM, and returns a clean dictionary 
-#      containing both the final humanized answer and the source document history.
-#
-# SUMMARY:
-# File 02a is the "Search Engine" (Finds the data). 
-# File 02b is the "Smart Assistant" (Finds the data AND explains it to the user).
-# ==============================================================================
+"""
+==============================================================================
+ARCHITECTURAL COMPARISON: 02a_ChromaDB_Sample vs. 02b_ChromaDB_RAGChainSample
+------------------------------------------------------------------------------
+While both files connect to ChromaDB, file 02b introduces a Large Language 
+Model (LLM) and LangChain's retrieval chains. This shifts the codebase from 
+a simple document search engine to an intelligent question-answering system.
+
+KEY IMPROVEMENTS OF 02b OVER 02a:
+
+1. RAW RETRIEVAL VS. NATURAL RESPONSES
+   - 02a (Vector Search Only): Only locates and prints raw, jagged text chunks 
+     exactly as they are written in your files. If the answer is split or messy, 
+     the user has to read through the raw data manually to find the answer.
+   - 02b (Integrated LLM): Takes those raw text chunks and feeds them to 
+     "gpt-4o-mini". The LLM synthesizes, filters, and rewrites the data into 
+     a highly concise, accurate, and human-readable response.
+
+2. CONTEXT STUFFING (create_stuff_documents_chain)
+   - 02b introduces a unified pipeline that automatically "stuffs" all matching 
+     database text chunks directly into a single system prompt template context 
+     window before communicating with OpenAI.
+
+3. END-TO-END AUTOMATION (create_retrieval_chain)
+   - In 02a, you have to query the database, capture the documents, and handle 
+     the output manually. 
+   - In 02b, calling `rag_chain.invoke()` handles the entire lifecycle in a single 
+     step: it converts the query to a vector, searches ChromaDB, passes the hits 
+     to the prompt template, queries the LLM, and returns a clean dictionary 
+     containing both the final humanized answer and the source document history.
+
+SUMMARY:
+File 02a is the "Search Engine" (Finds the data). 
+File 02b is the "Smart Assistant" (Finds the data AND explains it to the user).
+==============================================================================
+"""
 
 import os
 import warnings
@@ -46,8 +48,6 @@ from langchain_classic.chains import create_retrieval_chain
 # from langchain.chains import create_retrieval_chain
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_classic.chains.combine_documents import create_stuff_documents_chain
-from langchain_core.prompts import ChatPromptTemplate
-
 
 warnings.filterwarnings('ignore')
 load_dotenv()
@@ -57,14 +57,16 @@ load_dotenv()
 # ==============================================================================
 
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
-# gpt-3.5-turbo is usable but is considered outdated.
+# NOTE https://reference.langchain.com/python/langchain/chat_models/base/init_chat_model
 # gpt-4o-mini is faster, significantly more capable, and cheaper than gpt-3.5-turbo
 llm=init_chat_model("openai:gpt-4o-mini")
 
 DATA_DIR = "data"
 # 1. Define the same directory and collection name used during creation
 PERSISTENT_DIRECTORY = "./chroma_db"
-collection_name = "rag_collection"
+
+# collection_name acts as a unique namespace or table name that groups and stores your specific embeddings
+COLLECTION_NAME = "rag_collection"
 
 # ==============================================================================
 # 3. VECTOR STORE loading (ChromaDB)
@@ -79,7 +81,7 @@ embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
 vectorstore = Chroma(
     persist_directory=PERSISTENT_DIRECTORY,
     embedding_function=embeddings,
-    collection_name=collection_name
+    collection_name=COLLECTION_NAME
 )
 
 # 4. Verify it loaded correctly by checking the count

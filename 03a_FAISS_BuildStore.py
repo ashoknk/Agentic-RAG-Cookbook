@@ -1,3 +1,20 @@
+"""
+================================================================================
+This script serves as an introductory laboratory for establishing a local Vector 
+Store using FAISS (Facebook AI Similarity Search) and LangChain. It focuses on 
+the ingestion, chunking, embedding, and serialization phases of a standard Retrieval-Augmented Generation (RAG) pipeline.
+
+1. INITIALIZE EMBEDDINGS: Instantiates OpenAI's text-embedding model 
+   configured to output dense, 1536-dimensional semantic vectors.
+2. DEFINE RAW DATA: Creates an in-memory list of primitive `Document` objects containing 
+   foundational definitions of AI, ML, DL, and NLP alongside custom metadata.
+3. CHUNKING & SPLITTING: Leverages a `RecursiveCharacterTextSplitter` to enforce 
+   strict control over document geometry (chunk sizes and overlaps) for granular retrieval.
+4. INDEXING & FAISS BUILD: Feeds the semantic chunks into the FAISS vector database,  calculating embeddings on the fly.
+5. LOCAL PERSISTENCE: Serializes the generated FAISS index directly to disk inside  the local 'FAISS_INDEX' directory.
+================================================================================
+"""
+
 import os
 import warnings
 from dotenv import load_dotenv
@@ -26,6 +43,7 @@ embeddings = OpenAIEmbeddings(
 # ==========================================
 # 2. DEFINE RAW DOCUMENTS
 # ==========================================
+# If each document represents a distinct snippet, you should keep "page": 1
 sample_documents = [
     Document(
         page_content="""
@@ -85,5 +103,7 @@ vectorstore = FAISS.from_documents(
 print(f"FAISS Vector store built with {vectorstore.index.ntotal} vectors.")
 
 # Serialize index locally to disk
+# NOTE FAISS uses .save_local(). Chroma does not use .save_local() or .load_local(). 
+# Chroma utilizes automatic, directory-based persistence
 vectorstore.save_local(FAISS_INDEX)
 print(f"Vector store saved successfully to the '{FAISS_INDEX}/' directory.\n")

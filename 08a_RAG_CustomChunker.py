@@ -1,3 +1,25 @@
+"""
+================================================================================
+This script introduces an advanced document pre-processing strategy: **Custom Semantic Chunking**. 
+Instead of relying on rigid token or character counts 
+which can slice paragraphs mid-thought, this script builds a mathematical chunker 
+that evaluates sentence-by-sentence cosine similarity using a local HuggingFace 
+`SentenceTransformer` model to group conceptually aligned text.
+
+1. CUSTOM CLASS DEFINITION (`ThresholdSemanticChunker`): 
+   - Splits a large corpus into distinct individual sentences.
+   - Generates vector representations using `all-MiniLM-L6-v2`.
+   - Iterates line-by-line, analyzing the cosine similarity between sentence vectors.
+   - Joins sentences together if they cross an operational threshold; otherwise, 
+     it breaks the text flow to spawn a brand new semantic chunk.
+2. CHUNKING COMPILATION: Runs a sample document containing non-linear topics 
+   (reefs, quantum computing, sourdough baking) through the customized chunker.
+3. RAG RUNTIME ORCHESTRATION: Compiles a standard FAISS index with OpenAI embeddings 
+   and links it to a Groq Llama-3.1 model via an LCEL pipeline map to address 
+   complex domain-specific questions.
+================================================================================
+"""
+
 import os
 import logging
 import warnings

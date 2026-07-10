@@ -1,3 +1,23 @@
+"""
+================================================================================
+This script explores cloud-native vector persistence utilizing Pinecone, a 
+purpose-built, high-performance serverless vector database engine. It introduces 
+explicit **Index Management** workflows to teach students how remote database indices 
+are provisioned and maintained at scale.
+
+1. ENVIRONMENT VALIDATION: Performs defensive checkups to protect against empty 
+   or mock API keys before consuming cloud compute resources.
+2. REMOTE INDEX PROVISIONING: Uses the native Pinecone client to dynamically query the 
+   cloud environment. If the targeted index doesn't exist, it configures and 
+   spins up a new serverless vector cluster matching precise embedding dimensions.
+3. EMBEDDING PIPELINE: Pairs the Pinecone index with an OpenAI 1024-dimension 
+   embedding model via `PineconeVectorStore` to orchestrate automatic cloud ingestion.
+4. RELEVANCE SEARCH TESTING: Demonstrates deep database-level metadata filtering 
+   and handles edge-case testing by exposing how score thresholds successfully prune 
+   out irrelevant background noise.
+================================================================================
+"""
+
 import os
 import warnings
 from dotenv import load_dotenv

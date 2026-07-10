@@ -1,3 +1,27 @@
+"""
+================================================================================
+This script builds directly upon the previous GraphRAG foundation (`04a_Neo4jDB.py`) 
+by introducing **Custom Prompt Engineering**. While the earlier script relied on 
+LangChain's default behavior, this version explicitly overrides the final answer 
+generation phase to ensure responses are highly readable, authoritative, and 
+strictly grounded in the returned database context.
+
+WHAT'S NEW IN THIS VERSION (04b):
+- **Prompt Customization (`PromptTemplate`)**: Defines a rigid system persona (`cypher_qa_template`) 
+  instructing the LLM to treat raw Neo4j graph results as authoritative.
+- **Strict Grounding**: Instructs the LLM *not* to hallucinate outside info, using 
+  only the provided database `{context}` to answer the user's `{question}`.
+- **Chain Integration**: Injects the `qa_prompt` directly into `GraphCypherQAChain.from_llm()`.
+
+THE LOGICAL FLOW:
+1. DATA SEEDING: Execute Cypher queries via CSV to build the Movie/Person/Genre graph schema.
+2. PROMPT ENGINEERING: Construct a structured QA template ensuring human-friendly phrasing.
+3. CHAIN CONFIGURATION: Instantiate the `GraphCypherQAChain` using the custom prompt injection.
+4. TESTS & EVALUATION: Execute multiple test queries spanning multi-hop traversals, 
+   aggregations, and filters, observing how the LLM formats raw database responses.
+================================================================================
+"""
+
 import os
 import warnings
 from dotenv import load_dotenv

@@ -1,3 +1,21 @@
+"""
+================================================================================
+This script contrasts the custom threshold builder (`08a`) by showcasing 
+LangChain's built-in **`SemanticChunker`** class. It eliminates manual distance 
+looping by leveraging statistical anomalies to auto-determine chunk boundaries.
+
+1. INSTANTIATION: Configures LangChain's experimental `SemanticChunker`. 
+   Unlike character-count splitters, this utilizes OpenAI's embedding model 
+   directly to determine distance gaps between consecutive sentences.
+2. STATISTICAL BREAKPOINTS: Configures a `standard_deviation` threshold strategy. 
+   When the distance between adjacent sentences deviates beyond `1.25` standard 
+   deviations from the average, a semantic breakpoint is automatically triggered.
+3. RAG PIPELINE EXECUTION: Embeds the resulting native semantic chunks into a 
+   FAISS vector space and passes the retrieved contextual chunks into an LLM 
+   for high-accuracy query extraction.
+================================================================================
+"""
+
 import os
 import warnings
 from dotenv import load_dotenv

@@ -1,3 +1,32 @@
+"""
+================================================================================
+CORE INGESTION & PERSISTENT VECTOR STORE CONFIGURATION
+================================================================================
+Purpose:
+    Demonstrates how to build a complete production-grade data ingestion pipeline
+    using an on-disk vector database (ChromaDB) to turn raw text files into 
+    searchable mathematical representations.
+
+What it does:
+    1. Ingestion: Dynamically batches and loads `.txt` documents from a local directory.
+    2. Chunking: Applies a chunking strategy (`RecursiveCharacterTextSplitter`)
+       to slice raw data into clean, semantic fragments optimized for LLM windows.
+    3. Vector Storage: Employs OpenAI's text-embedding model to create 
+       high-dimensional dense vectors and stores them persistently on the disk.
+    4. Retrieval Mechanics: Demonstrates standard context lookups (`similarity_search`) 
+       and advanced vector analysis queries (`similarity_search_with_score`).
+
+Crucial Database Insight:
+    Unlike general cosine similarity metrics where higher numbers represent better alignment, 
+    ChromaDB natively uses **Squared L2 (Euclidean) Distance**. In this framework, **LOWER 
+    scores represent high semantic alignment**, where 0.0 is a mathematically exact match.
+
+Role in Agentic RAG:
+    This file establishes the persistent "Non-Parametric Knowledge Base" that 
+    the final RAG agent can query via standard vectors to answer domain-specific questions.
+================================================================================
+"""
+
 import os
 import warnings
 from dotenv import load_dotenv
@@ -21,18 +50,22 @@ load_dotenv()
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
 DATA_DIR = "data"
 PERSISTENT_DIRECTORY = "./chroma_db"
+COLLECTION_NAME = "rag_collection"  # collection_name acts as a unique namespace or table name that groups and stores your specific embeddings
 
 # ==============================================================================
 # 2. DOCUMENT LOADING & TRANSFORMATION
 # ==============================================================================
 
 # Load documents from the local directory
+
 loader = DirectoryLoader(
     DATA_DIR, 
     glob="*.txt", 
     loader_cls=TextLoader,
     loader_kwargs={'encoding': 'utf-8'}
 )
+
+# https://reference.langchain.com/python/langchain-community/document_loaders/directory/DirectoryLoader/load
 documents = loader.load()
 print(f"Loaded {len(documents)} documents.")
 
@@ -54,11 +87,12 @@ embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
 
 # Unlike InMemoryVectorStore, Chroma persists data to disk
 # Chroma.from_documents(...) It is an initialization method used for ingesting and saving new data.
+# collection_name acts as a unique namespace or table name that groups and stores your specific embeddings
 vectorstore = Chroma.from_documents(
     documents=chunks,
     embedding=embeddings,
     persist_directory=PERSISTENT_DIRECTORY,
-    collection_name="rag_collection"
+    collection_name=COLLECTION_NAME
 )
 
 print(f"Vector store created with {vectorstore._collection.count()} vectors.")
@@ -136,18 +170,18 @@ results_scores=vectorstore.similarity_search_with_score(query_3,k=2)
 display_results(query_3, results_scores, with_scores=True)
 
 
-# ==============================================================================
-# CHROMADB RELEVANCE SCORE CHEAT SHEET (Squared L2 Distance)
-# ------------------------------------------------------------------------------
-# Because ChromaDB measures the DISTANCE between vectors, LOWER scores mean 
-# the text chunks are closer together (Better/More Similar). 
-# Use these general brackets to judge your search results:
-#
-#   0.0 to 0.5  --> Exceptional, near-exact word match.
-#   0.5 to 0.8  --> The "Sweet Spot". Excellent semantic match. The conceptual 
-#                   answer is definitely in this chunk.
-#   0.8 to 1.1  --> Loose match. Shares some related vocabulary but might miss 
-#                   the specific point.
-#   > 1.1       --> Weak match. Likely "filler" context returned because 'k' 
-#                   forced the database to return a document.
-# ==============================================================================
+"""==============================================================================
+CHROMADB RELEVANCE SCORE CHEAT SHEET (Squared L2 Distance)
+------------------------------------------------------------------------------
+Because ChromaDB measures the DISTANCE between vectors, LOWER scores mean 
+the text chunks are closer together (Better/More Similar). 
+Use these general brackets to judge your search results:
+
+  0.0 to 0.5  --> Exceptional, near-exact word match.
+  0.5 to 0.8  --> The "Sweet Spot". Excellent semantic match. The conceptual 
+                  answer is definitely in this chunk.
+  0.8 to 1.1  --> Loose match. Shares some related vocabulary but might miss 
+                  the specific point.
+  > 1.1       --> Weak match. Likely "filler" context returned because 'k' 
+                  forced the database to return a document.
+=============================================================================="""
