@@ -1,3 +1,23 @@
+"""
+================================================================================
+This script evaluates Python's native **`TypedDict`** class as the state schema 
+layer of a LangGraph workflow. It teaches students how state dictionaries act as 
+type hints for development environments, but highlights their lack of strict data 
+validation at runtime.
+
+
+1. STATE DEFINITION: Declares a `TypedDictState` containing a user's name string 
+   and a strict game option constraint (`Literal["pickeball", "soccer"]`).
+2. WORKFLOW ROUTING DESIGN: Connects an initialization play node to secondary nodes 
+   via a 50/50 randomized conditional branching router (`decide_play_typed`).
+3. VALID STATE EXECUTION: Invokes the compiled state workflow with valid user string 
+   arguments, verifying successful execution and routing behavior.
+4. RUNTIME LIMITATION PROOF: Invokes the graph passing an integer type into the 
+   `name` field. The script successfully runs without crashing, demonstrating 
+   that `TypedDict` type constraints are *not* strictly enforced at runtime.
+================================================================================
+"""
+
 import os
 import logging
 import warnings

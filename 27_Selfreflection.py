@@ -1,17 +1,18 @@
-# ==========================================
-# Self-Reflection RAG using LangGraph
-# ==========================================
-# Concept:
-# In Self-Reflection RAG, the agent generates an answer and then "reflects" on it. 
-# It checks if the answer actually answers the question or if it needs more information. 
-# If it's not good enough, it loops back to perform another search or refine the answer.
+"""==========================================
+Self-Reflection RAG using LangGraph
+==========================================
+Concept:
+In Self-Reflection RAG, the agent generates an answer and then "reflects" on it. 
+It checks if the answer actually answers the question or if it needs more information. 
+If it's not good enough, it loops back to perform another search or refine the answer.
+"""
 
 import os
 from typing import List
 from dotenv import load_dotenv
 
 # Set a custom User-Agent identifying your application
-os.environ["USER_AGENT"] = "Agentic-RAG-Cookbook/1.0 (contact: ashnaiku@codeaiwashnaiku.com)"
+os.environ["USER_AGENT"] = "Agentic-RAG-Cookbook/1.0 (contact: ash@codeaiwashnaiku.com)"
 
 
 from pydantic import BaseModel

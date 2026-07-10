@@ -22,7 +22,7 @@ Role in Agentic RAG:
 
 import os
 # Set a custom User-Agent identifying your application
-os.environ["USER_AGENT"] = "Agentic-RAG-Cookbook/1.0 (contact: ashnaiku@codeaiwashnaiku.com)"
+os.environ["USER_AGENT"] = "Agentic-RAG-Cookbook/1.0 (contact: ash@codeaiwashnaiku.com)"
 
 import warnings
 import logging

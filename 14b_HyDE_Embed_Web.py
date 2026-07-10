@@ -1,3 +1,25 @@
+"""
+================================================================================
+This script transitions from the raw manual function mapping of the previous example 
+to LangChain's production-ready abstraction class: **`HypotheticalDocumentEmbedder`**. 
+It implements a pre-configured preset called `"web_search"`, which forces the internal 
+LLM to generate hypothetical text structured like a standard, high-quality search engine answer page.
+
+
+1. INGESTION ENGINE: Splices a multi-paragraph cybersecurity dataset into 
+   granular 300-character segments.
+2. WRAPPED HYDE INTERFACE: Instantiates `HypotheticalDocumentEmbedder.from_llm()`. 
+   This seamlessly binds your basic HuggingFace embedding calculations and your Groq 
+   LLM into a single, unified `hyde_embedding_function` object.
+3. SILENT QUERY ROUTING: The new object wraps around the vector store ingestion. 
+   When `similarity_search()` is called, the class intercepts your short text query, 
+   silently queries the LLM for a web-styled response, embeds it, and runs the 
+   database vector lookup completely behind the scenes.
+4. RAG RESPONSE GENERATION: Feeds the extracted semantic matches into a document 
+   stuffing chain to return the final grounded answer.
+================================================================================
+"""
+
 import logging
 import os
 import warnings

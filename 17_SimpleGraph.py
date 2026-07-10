@@ -4,6 +4,38 @@
 # The State schema serves as the input schema for all Nodes and Edges in the graph.
 # Let's use the TypedDict class from python's typing module as our schema, 
 # which provides type hints for the keys.
+"""
+================================================================================
+SCRIPT PURPOSE & OVERVIEW:
+--------------------------
+This script serves as a foundational hello-world lab for **LangGraph**, 
+introducing how to create a cyclical or non-linear stateful execution workflow. 
+It breaks down the core structural units of any graph pipeline: States, 
+Nodes, Edges, and Conditional Routers.
+
+
+THE CORE MECHANICS:
+-------------------
+- **State**: A unified dictionary (`TypedDict`) that acts as the single source of 
+  truth passing through every stage of the lifecycle.
+- **Nodes**: Standard Python functions that process the state and return incremental 
+  updates to it.
+- **Edges**: Paths connecting nodes together to establish execution sequence.
+- **Conditional Edges**: Decision-making routers that dynamically compute the next 
+  destination based on the state payload at runtime.
+
+THE LOGICAL FLOW:
+-----------------
+1. SCHEMA DEFINITION: Configures a primitive `State` tracking a `graph_info` string.
+2. NODE COMPILATION: Implements execution nodes (`start_play`, `soccer`, `pickelball`) 
+   and a random conditional routing decision function (`random_play`).
+3. GRAPH CONSTRUCTION: Instantiates `StateGraph`, registers the functional nodes, 
+   sets up hard edges, and maps out conditional routing paths.
+4. EXECUTION ENGINES: Compiles the pipeline, exports a structural graph layout image 
+   via Mermaid, and invokes the workflow to track mutations over the string data.
+================================================================================
+"""
+
 import os
 import random
 from typing import Literal

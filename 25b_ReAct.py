@@ -27,7 +27,7 @@ from dotenv import load_dotenv
 from typing import Annotated, TypedDict, Sequence
 
 # Set a custom User-Agent identifying your application
-os.environ["USER_AGENT"] = "Agentic-RAG-Cookbook/1.0 (contact: ashnaiku@codeaiwashnaiku.com)"
+os.environ["USER_AGENT"] = "Agentic-RAG-Cookbook/1.0 (contact: ash@codeaiwashnaiku.com)"
 
 
 # from langgraph.prebuilt import create_react_agent

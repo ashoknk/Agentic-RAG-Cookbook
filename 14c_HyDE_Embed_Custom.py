@@ -1,3 +1,25 @@
+"""
+================================================================================
+This script introduces the advanced customization layer of the HyDE pipeline. 
+While generic presets like `web_search` work fine for everyday topics, they perform 
+poorly on highly technical domain materials (like source code libraries, contracts, or medical data). 
+This script implements a **Custom Prompt Template** to steer the LLM's imagination, 
+guaranteeing that the fake document matches the exact technical jargon, style, 
+and vocabulary of the underlying data files.
+
+
+1. UNSTRUCTURED FILE INGESTION: Imports and splits localized developer reference 
+   documentation datasets into manageable vector chunks.
+2. CUSTOM RETRIEVAL ENGINEERING: Constructs a tailored `PromptTemplate`. This is injected 
+   into `HypotheticalDocumentEmbedder` via the `custom_prompt` parameter, overriding 
+   the default web search text instructions.
+3. CHROMA DISK INGESTION: Builds a dedicated database directory (`output/langchain_custom`) 
+   where retrieval vectors are registered and sorted via the engineered prompt.
+4. PIPELINE EXECUTION: Automatically expands complex technical questions into 
+   targeted jargon-rich strings, optimizing chunk matching performance.
+================================================================================
+"""
+
 # ========== Use custom prompt instead of web_search ==============
 
 # If you are building a specialized RAG pipeline—for example, searching a database of medical 

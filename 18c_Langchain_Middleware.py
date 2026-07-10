@@ -1,3 +1,26 @@
+"""
+================================================================================
+This script explores **Agent Middleware**, introducing mechanisms to manage, compress, 
+and control complex runtime behavior during long-lived chat cycles. It details 
+the production deployment of history summarizers and human-in-the-loop triggers.
+
+
+- **`SummarizationMiddleware`**: Monitors conversation size. When conversation blocks 
+  hit explicit thresholds (message limits, token size limits, or model window 
+  fractions), it triggers a summary node to compress older historical context.
+- **`HumanInTheLoopMiddleware`**: Intercepts high-stakes agent actions. It pauses execution 
+  prior to dangerous tool steps (e.g., sending emails), allowing human operators to 
+  approve, edit parameters, or reject the operation completely.
+
+1. MESSAGING SUMMARY TESTING: Loops through a set of logic exercises, validating 
+   how message history boundaries trigger automated history compression.
+2. TOKEN LIMIT MONITORING: Evaluates token usage and verifies context truncation.
+3. HUMAN-IN-THE-LOOP FLOWS: Configures an email agent cluster. Demonstrates handling 
+   state interrupts (`__interrupt__`), approving transactions, rejecting calls, and 
+   inline editing of parameters using LangGraph `Command` blocks.
+================================================================================
+"""
+
 import os
 from dotenv import load_dotenv
 from langchain.agents import create_agent

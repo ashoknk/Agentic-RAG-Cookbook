@@ -1,3 +1,32 @@
+"""
+================================================================================
+This script presents **Adaptive RAG**, a sophisticated, routing-driven strategy 
+designed to dynamically adjust its retrieval method based on the core nature 
+and intent of the user prompt. Rather than running a static retrieval sequence, 
+it uses an upfront routing gatekeeper node to direct requests along entirely different 
+computational paths.
+
+
+THE THREE STRUCTURAL PATHWAYS:
+------------------------------
+- **Vector Store (RAG)**: For hyper-focused, specific domain knowledge found 
+  in local document databases (e.g., proprietary software docs).
+- **Web Search**: For trending queries, current real-time alerts, or wide-spectrum 
+  general knowledge outside internal data pools.
+- **Direct Response**: (Conceptual) For simple conversational pleasantries, greetings, 
+  or baseline logic tasks.
+
+1. GATEKEEPER ROUTER (`router_node`): Intercepts the user query and forces an 
+   LLM to commit to a structured metadata choice (`RouteQuery`).
+2. DYNAMIC BRANCHING: LangGraph interprets the returned token path (`vectorstore` 
+   or `web_search`) and routes the state packet accordingly.
+3. SOURCE SELECTION: Either triggers a localized FAISS vector store retrieval 
+   or launches a live Tavily web search, preventing wasteful database overhead.
+4. KNOWLEDGE SYNTHESIS (`generate`): Feeds the accurately routed context into 
+   the final generative generation chain.
+================================================================================
+"""
+
 import os
 import logging
 import warnings

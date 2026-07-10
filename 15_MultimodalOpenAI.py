@@ -1,4 +1,28 @@
 ### Multimodal RAG (PDF With Images)
+"""
+================================================================================
+This script introduces **Multimodal Retrieval-Augmented Generation (RAG)**. 
+Instead of extracting only text from documents, this architecture processes and 
+indexes both unstructured text blocks and physical image files (such as charts, 
+diagrams, or photographs) found within complex source PDFs.
+
+
+THE COGNITIVE ENGINE (CLIP):
+The system utilizes OpenAI's `clip-vit-base-patch32` multimodal model. 
+CLIP maps both language tokens and visual imagery into a **shared, unified vector space**. 
+This means a raw string query and a visual chart representing the same concept will 
+yield highly matching mathematical coordinate embeddings, allowing for simultaneous retrieval.
+
+1. DUAL INGESTION & PIPELINE MAPPING: Iterates through PDF pages. Text blocks are 
+   chunked and vectorized via `embed_text()`, while extracted images are converted 
+   to PIL format, embedded via `embed_image()`, and backed up as Base64 strings.
+2. UNIFIED EXTENSION INDEX: Compiles text and visual placeholders into a unified 
+   LangChain `FAISS` database managed by a custom `CLIPLangChainEmbeddings` wrapper.
+3. RETRIEVAL & RESPONSE GENERATION: Executes cross-modal searches. The script 
+   segregates text and image matches, structuralizing them into an advanced, 
+   multimodal `HumanMessage` payload dispatched to an OpenAI vision-capable model.
+================================================================================
+"""
 
 import fitz  # PyMuPDF
 from langchain_core.documents import Document

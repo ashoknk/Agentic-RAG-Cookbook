@@ -1,3 +1,25 @@
+"""
+================================================================================
+This final script demonstrates the ultimate benefit of the ReAct blueprint: 
+**Compound Tool Orchestration**. It challenges the agent with complex, 
+hybrid user prompts that require executing multiple distinct tools sequentially 
+(e.g., merging real-time news retrieval with concurrent multi-step arithmetic) 
+within a single conversational turn.
+
+
+1. TOTAL INTEGRATION: Assembles the entire array of search engines, academic 
+   scanners, and mathematical operators into a unified execution ecosystem.
+2. MODEL SCHEDULING: Binds the combined tools list to the `qwen3-32b` engine and 
+   compiles the network graph with persistent checkpoint memory.
+3. COMPOUND PROMPT EVALUATION: Submits layered queries containing disparate instruction sets 
+   (e.g., extracting recent cyberattack news *and* adding numbers *and* multiplying 
+   the intermediate results).
+4. EXECUTION FLOW TRACKING: Traces how the graph loops multiple times between the 
+   LLM and `ToolNode`, collecting diverse payloads before formatting the final combined answer.
+================================================================================
+"""
+
+
 import os
 import warnings
 import logging
@@ -7,7 +29,7 @@ from typing_extensions import TypedDict
 from dotenv import load_dotenv
 
 # Set a custom User-Agent identifying your application
-os.environ["USER_AGENT"] = "Agentic-RAG-Cookbook/1.0 (contact: ashnaiku@codeaiwashnaiku.com)"
+os.environ["USER_AGENT"] = "Agentic-RAG-Cookbook/1.0 (contact: ash@codeaiwashnaiku.com)"
 
 from langchain_community.tools import ArxivQueryRun, WikipediaQueryRun
 from langchain_community.utilities import WikipediaAPIWrapper, ArxivAPIWrapper

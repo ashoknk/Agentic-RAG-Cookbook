@@ -1,5 +1,5 @@
-# ### HyDE
-# 🧠 What is HyDe?
+"""
+# ### HyDE # 🧠 What is HyDe?
 
 # HyDE (Hypothetical Document Embeddings) is a retrieval technique where, instead of embedding 
 # the user’s query directly, you first generate a hypothetical answer (document) to 
@@ -9,6 +9,25 @@
 # 1. Queries are short
 # 2. Language mismatch between query and documents
 # 3. You want to retrieve based on answer content, not question words
+================================================================================
+This script introduces **Hypothetical Document Embeddings (HyDE)** via a clear, 
+step-by-step manual implementation. Standard vector search embeds a 
+"Question," which often looks completely different from the "Answers" stored in a 
+database. HyDE solves this by using an LLM to generate a "Fake Answer" 
+(hypothetical document) first. We then embed that fake answer to query 
+the database, matching the target document vocabulary with far greater precision.
+
+
+1. DATASET SETUP: Uses a `WikipediaLoader` to pull biographical historical data 
+   and chunks it into a persistent local Chroma vector database.
+2. HYPOTHETICAL GENERATION (`get_hyde_doc`): Captures the short user prompt and 
+   forces an LLM (`llama-3.1-8b-instant`) to draft an ungrounded essay on the topic.
+3. BASELINE VS. HYDE DEMONSTRATION:
+   - **Baseline Test**: Passes the raw question directly into the retriever.
+   - **HyDE Test**: Converts the user query into the dense, fake essay text, 
+     then passes that essay to the database to reveal superior contextual precision.
+================================================================================
+"""
 
 import os
 import logging

@@ -1,3 +1,24 @@
+"""
+================================================================================
+This script serves as a technical showcase of optimization strategies within LangChain, 
+specifically focusing on the performance and design tradeoffs between real-time token 
+**Streaming** and parallelized asynchronous **Batch Processing**.
+
+THE RUNTIME PATTERNS:
+---------------------
+- **Streaming (`.stream()`)**: Sets up an iterative generator that yields individual text 
+  tokens piece-by-piece as they are processed by the LLM, reducing perceived latency.
+- **Batching (`.batch()`)**: Aggregates a compilation of independent text requests 
+  and submits them concurrently to the provider API, maximizing throughput.
+
+
+1. SYNCHRONOUS BASELINE: Measures the traditional block time of a standard invoke call.
+2. TOKEN GENERATION LOOP: Uses a streaming block to unpack and stream real-time responses.
+3. PARALLELIZED POOL CONCURRENCY: Dispatches multiple questions simultaneously via 
+   batch configurations, demonstrating concurrency-bounded throttling (`max_concurrency`).
+================================================================================
+"""
+
 import os
 from dotenv import load_dotenv
 from langchain.chat_models import init_chat_model

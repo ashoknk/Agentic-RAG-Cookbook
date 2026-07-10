@@ -77,7 +77,8 @@ groq_api_key=os.getenv("GROQ_API_KEY")
 llm=ChatGroq(groq_api_key=groq_api_key,model_name="openai/gpt-oss-20b")
 print(llm)
 
-#TODO : when you set this to True, it's best practice to ensure your Neo4j database user (NEO4J_USERNAME) only has read-only permissions if you are just querying data, especially if this app will ever be exposed to end-users.
+# NOTE : when you set this to True, it's best practice to ensure your Neo4j database user (NEO4J_USERNAME) 
+# only has read-only permissions if you are just querying data, especially if this app will ever be exposed to end-users.
 
 chain = GraphCypherQAChain.from_llm(
     graph=graph, 

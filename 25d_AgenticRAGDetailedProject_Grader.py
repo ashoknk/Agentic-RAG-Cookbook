@@ -1,10 +1,8 @@
 """
-Main Goal: 
     To demonstrate an advanced Agentic RAG Flow with Self-Correction (Corrective RAG).
 The Core Mechanism: 
     Instead of using a prebuilt tool, this file constructs a custom state graph from scratch using 
     individual nodes (agent, retrieve, rewrite, generate) and a custom conditional router (grade_documents).
-
 
 The Role of the Grader: 
     This is the "Self-RAG" or "Corrective RAG" pattern. When a tool retrieves documents, 
@@ -25,7 +23,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Set a custom User-Agent identifying your application
-os.environ["USER_AGENT"] = "MyAgenticRAGApp/1.0 (contact: ashnaiku@codeaiwashnaiku.com)"
+os.environ["USER_AGENT"] = "MyAgenticRAGApp/1.0 (contact: ash@codeaiwashnaiku.com)"
 
 os.environ["GROQ_API_KEY"]=os.getenv("GROQ_API_KEY")
 os.environ["OPENAI_API_KEY"]=os.getenv("OPENAI_API_KEY")

@@ -1,3 +1,29 @@
+"""
+================================================================================
+This script introduces **Corrective RAG (CRAG)**, an advanced self-correcting 
+retrieval strategy implemented with LangGraph. Standard RAG blindy 
+trusts whatever documents the vector store returns, which often leads to 
+hallucinations if the source data is irrelevant. CRAG solves this by injecting 
+an automated grading step that evaluates chunk quality, actively branching to 
+the web if internal data falls short.
+
+
+1. DATA INGESTION: Indexes a localized text vector store using high-performance 
+   OpenAI embeddings and a FAISS database.
+2. VECTOR RETRIEVAL (`retrieve`): Pulls candidate source documents related to 
+   the user's incoming query.
+3. QUALITY ASSESSMENT (`grade_documents`): Uses an LLM with structured output 
+   (`Grade`) to strictly judge the retrieved items with a binary 'yes' or 'no' 
+   relevance score. If any chunk is deemed irrelevant, a web search 
+   flag is raised.
+4. WEB SEARCH FALLBACK (`web_search`): If internal facts are absent or graded 
+   as incomplete, the graph branches to a live Tavily API web search to scrape 
+   ground-truth external context.
+5. CONTEXT SYNTHESIS (`generate`): Assembles all validated context fragments 
+   and generates a polished answer.
+================================================================================
+"""
+
 import os
 import logging
 import warnings

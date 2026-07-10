@@ -1,3 +1,29 @@
+"""
+================================================================================
+This script delivers the solution to the state override dilemma explored in `20a`. 
+It introduces the specialized **LangGraph Reducer framework** to create a resilient, 
+append-only state architecture that preserves conversational history across nodes.
+
+
+THE REDUCER MECHANISM:
+----------------------
+Using `Annotated[list[AnyMessage], add_messages]` modifies how LangGraph manages 
+internal updates. Instead of performing a destructive dictionary replacement, 
+it routes all incoming node updates through the `add_messages` function, automatically 
+appending updates to the core conversation history list.
+
+1. SCHEMA CONFIGURATION: Constructs a `State` blueprint equipped with an 
+   annotated message append reducer.
+2. SIMULATION RUNTIME: Validates the state accumulation process by calling `add_messages` 
+   manually to prove list persistence.
+3. AGENT TOOL PIPELINE COMPILATION: Assembles a state graph mapping an LLM chatbot node 
+   to a pre-built `ToolNode` array using a conditional router link (`tools_condition`).
+4. END-TO-END VERIFICATION: Launches a live tool call prompt to confirm that the 
+   compiled graph successfully tracks user inputs, intermediary tool requests, 
+   and final generated answers within a unified, non-destructive history stack.
+================================================================================
+"""
+
 import os
 from dotenv import load_dotenv
 from typing_extensions import TypedDict

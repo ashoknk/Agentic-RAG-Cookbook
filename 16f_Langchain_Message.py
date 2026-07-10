@@ -1,3 +1,23 @@
+"""
+================================================================================
+This script provides an educational exploration of the foundational unit of context 
+in LangChain: the **Message Object Array**. It maps out the precise responsibilities 
+of different message subclasses used to maintain conversation state.
+
+THE FIVE CORE CONTEXT CLASSES:
+- `SystemMessage`: Establishes behavior guidelines, personas, or strict output constraints.
+- `HumanMessage`: Represents text or multimodal inputs provided by the user.
+- `AIMessage`: Contains model responses, token metrics, or structured tool requests.
+- `ToolMessage`: Holds execution data returned from external tool lookups.
+
+1. PERSONA SETUP: Tests complex instructions using highly specialized `SystemMessage` prompts.
+2. HISTORY SIMULATION: Injects manual message arrays into the payload to simulate 
+   past interactions, observing how the model maintains context.
+3. METADATA ANALYSIS: Examines tracking structures, capturing message identities 
+   and provider-agnostic token consumption arrays (`usage_metadata`).
+================================================================================
+"""
+
 import os
 from dotenv import load_dotenv
 from langchain.chat_models import init_chat_model

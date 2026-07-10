@@ -1,23 +1,41 @@
-# ### Agentic RAG
-# 🤖 What is Agentic RAG?
+"""### Agentic RAG 🤖 What is Agentic RAG? ###
+Agentic RAG stands for Agentic Retrieval-Augmented Generation — an advanced version of RAG where instead of a static, 
+one-shot LLM response,the system uses an agent that:
+- reasons,
+- plans,
+- retrieves,
+- uses tools,
+- and even retries or reflects
+to generate better, more grounded answers.
 
-# Agentic RAG stands for Agentic Retrieval-Augmented Generation — an advanced version of RAG where instead of a static, one-shot LLM response,the system uses an agent that:
+================================================================================
+This script introduces **Agentic RAG (Retrieval-Augmented Generation)** implemented 
+via LangGraph. Unlike traditional, linear RAG pipelines that execute 
+a rigid "retrieve-then-generate" script in a one-shot fashion, Agentic RAG shifts 
+the workload into a stateful, graph-driven execution canvas. The system uses an 
+orchestration agent that can reason, plan, use tools, and loop between nodes dynamically.
 
-# - reasons,
-# - plans,
-# - retrieves,
-# - uses tools,
-# - and even retries or reflects
-# to generate better, more grounded answers.
 
-# NOTE sec16a_1-agenticrag.ipynb - Section 16 - 91  Build a Basic RAG with Langgraph
+1. WEB DOCUMENT PREPROCESSING: Uses `WebBaseLoader` to pull live enterprise cyber security 
+   and bot management blogs from cloud vendor technical guides (Cloudflare, AWS, Indusface).
+2. VECTORIZATION LAYER: Splits the raw HTML text extractions into 500-character blocks 
+   and builds a local FAISS database with OpenAI's `text-embedding-3-small` model.
+3. PYDANTIC STATE DESIGN (`RAGState`): Establishes a Pydantic-backed state schema tracking 
+   the raw question string, a dynamic list of recovered `Document` objects, and the 
+   final response payload. This ensures data validation at node boundaries.
+4. STATEGRAPH BUILD: Registers functional worker nodes (`retriever` and `responder`) 
+   and compiles them into a workflow graph ending at the terminal `END` state.
+5. EXECUTION: Runs a complex security query forcing the model to synthesize text 
+   regarding client-side challenges and traditional WAF logic from the context.
+================================================================================
+"""
 
 import os
 from typing import List, Annotated
 from pydantic import BaseModel
 
 # Set a custom User-Agent identifying your application
-os.environ["USER_AGENT"] = "Agentic-RAG-Cookbook/1.0 (contact: ashnaiku@codeaiwashnaiku.com)"
+os.environ["USER_AGENT"] = "Agentic-RAG-Cookbook/1.0 (contact: ash@codeaiwashnaiku.com)"
 
 
 from langchain_community.vectorstores import FAISS

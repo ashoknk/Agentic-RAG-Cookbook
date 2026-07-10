@@ -1,3 +1,29 @@
+"""
+================================================================================
+This script expands upon the core ReAct agent pattern by shifting focus to 
+**Dynamic Multi-Domain Information Retrieval**. It showcases how a single 
+reasoning engine can dynamically choose between different external research 
+apis based on the context of the user's inquiry.
+
+THE VALUE OF API TOOL DIVERSIFICATION:
+--------------------------------------
+Instead of forcing a single general-purpose web search engine to answer all 
+prompts, this architecture introduces specialized lookup APIs. The model 
+autonomously determines the optimal source channel: routing current affairs to 
+Tavily, historical biographical data to Wikipedia, and research paper inquiries 
+directly to arXiv.
+
+1. INITIALIZATION: Registers specialized academic, encyclopedia, and web search 
+   wrappers (`ArxivQueryRun`, `WikipediaQueryRun`, `TavilySearchResults`) alongside 
+   arithmetic utilities.
+2. GRAPH WIRING: Compiles an identical ReAct state graph architecture backed by 
+   the `MemorySaver` checkpointer mechanism.
+3. DISPARATE RUNTIME TESTING:
+   - **Run 1 (Tavily)**: Queries recent real-world news to trigger live web lookups.
+   - **Run 2 (arXiv)**: Submits an explicit research paper ID code to extract technical text.
+   - **Run 3 (Wikipedia)**: Submits historical figure questions to scrape structured encyclopedia definitions.
+================
+
 import os
 import warnings
 import logging
@@ -7,7 +33,7 @@ from typing_extensions import TypedDict
 from dotenv import load_dotenv
 
 # Set a custom User-Agent identifying your application
-os.environ["USER_AGENT"] = "Agentic-RAG-Cookbook/1.0 (contact: ashnaiku@codeaiwashnaiku.com)"
+os.environ["USER_AGENT"] = "Agentic-RAG-Cookbook/1.0 (contact: ash@codeaiwashnaiku.com)"
 
 from langchain_community.tools import ArxivQueryRun, WikipediaQueryRun
 from langchain_community.utilities import WikipediaAPIWrapper, ArxivAPIWrapper

@@ -1,3 +1,25 @@
+"""
+================================================================================
+An instructional guide demonstrating provider interoperability via LangChain. 
+This script highlights how to interact with different flagship LLM backends 
+(OpenAI, Google Gemini, and Meta Llama via Groq) using two alternative integration 
+patterns: the universal initialization wrapper and direct class factories.
+
+THE TWO STYLES OF INITIALIZATION:
+---------------------------------
+- **The Universal Pattern (`init_chat_model`)**: An enterprise abstraction layer. 
+  By specifying a single routing string (e.g., `"google_genai:gemini-2.5-flash"`), LangChain 
+  automatically maps parameters and handles model loading without structural code changes.
+- **The Direct Class Pattern**: Uses explicit class models (`ChatOpenAI`, `ChatGroq`). 
+  Ideal for provider-specific edge configurations, but requires strict library imports.
+
+
+1. CREDENTIAL LOADING: Registers API access parameters across separate provider accounts.
+2. INTERACTIVE DEMO ITERATION: Sequentially instantiates, runs, and monitors text 
+   generation across OpenAI, Google, and Groq engine endpoints.
+================================================================================
+"""
+
 import os
 from dotenv import load_dotenv
 from langchain.chat_models import init_chat_model

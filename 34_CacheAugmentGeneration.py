@@ -1,3 +1,30 @@
+"""
+================================================================================
+This script introduces **Cache-Augmented Generation (CAG)**, a highly performant 
+alternative to traditional RAG architectures. Instead of spending extra computation time 
+searching, indexing, and reranking chunks from a database for every query, CAG 
+takes advantage of ultra-long context window models. It pre-loads entire reference text 
+bodies directly into the system context upfront, letting the model instantly query 
+the information using internal attention cache frameworks.
+
+[Image comparing classic RAG (vector database lookups) with Cache-Augmented Generation (direct preloaded prompt context)]
+
+WHEN IS CAG RELEVANT?
+CAG shines brightest when dealing with fixed, slow-moving document sets (such as 
+product guides, company policies, or specific rulebooks). By omitting vector stores, 
+it eliminates retrieval latency, bypasses bad indexing strategies, and ensures the 
+entire document pool is fully considered by the model.
+
+1. STATE DEFINITION: Outlines a simplified workflow structure tracking the question, 
+   cached text buffer, and final target answer.
+2. PREFIX INGESTION (`preload_context`): Simulates importing a full reference 
+   knowledge base into the persistent graph memory structure.
+3. GENERATION RUNTIME (`generate`): Binds the question directly to the preloaded 
+   cache block, instructing an optimized LLM (`gpt-4o-mini`) to extract precise 
+   insights without querying an external vector database.
+================================================================================
+"""
+
 import os
 from typing import  TypedDict
 from dotenv import load_dotenv

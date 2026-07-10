@@ -7,6 +7,25 @@
 # TypedDict is best when you want lightweight data structures native to Python 
 #  without the overhead of Pydantic class instances.
 
+"""
+================================================================================
+This script focuses on enforcing reliable data formats from unstructured text generation, 
+leveraging standard Python **`TypedDict` schemas** combined with model-level constraints. 
+This approach guarantees that the LLM's response can be reliably converted into 
+predictable data structures, avoiding the parsing errors common with raw string manipulation.
+
+1. TYPED DATA DEFINITION: Declares nested structured layouts using `TypedDict` models 
+   to specify nested string arrays, integers, and objects.
+2. ENFORCEMENT BINDING (`with_structured_output`): Modifies the model's output routing. 
+   This forces the engine to leverage native tool-calling features or JSON mode 
+   to guarantee compliance with the requested schema.
+3. PARSING DATA: Submits a movie metadata question and receives an instant, 
+   fully hydrated native Python dictionary object.
+4. PRODUCTION UTILIZATION: Iterates over the structured return value to render 
+   a text-aligned terminal table, demonstrating immediate database readiness.
+================================================================================
+"""
+
 import os
 import json
 from dotenv import load_dotenv

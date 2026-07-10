@@ -1,3 +1,25 @@
+"""
+================================================================================
+This diagnostic script isolates conversation memory tracking and tool-calling structures. 
+It serves as a playground exposing the fatal **State Override Problem** that happens 
+by default in basic dictionary states when custom reducers are not applied.
+
+[Image showing dictionary merge operation overwriting message history list]
+
+1. CONVERSATION FLOW SIMULATION: Creates a conversational text stack using manual 
+   `AIMessage` and `HumanMessage` arrays passed directly to a Groq LLM model.
+2. RAW FUNCTION BINDING (`bind_tools`): Defines an arithmetic function and binds 
+   its parameter definitions to the LLM instance to track tool call formatting.
+3. THE OVERRIDE DISASTER DEMONSTRATION: Sets up a mock state dictionary containing 
+   the user's initial messages. It simulates a node finishing execution and 
+   returning a new response chunk.
+4. STANDARD DICTIONARY UPDATE EVALUATION: Merges the node response using Python's 
+   native `.update()` method. This demonstrates how standard merge operations 
+   completely overwrite historical context arrays, highlighting the absolute 
+   necessity of LangGraph state Reducer functions.
+================================================================================
+"""
+
 import os
 import random
 from pprint import pprint

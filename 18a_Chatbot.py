@@ -1,4 +1,26 @@
 ### Implementing simple Chatbot Using LangGraph
+"""
+================================================================================
+This script applies the LangGraph state machine workflow to construct an 
+interactive conversational AI agent chatbot. It serves as a direct technical 
+bridge explaining how conversation streams are dynamically tracked and maintained.
+
+THE VALUE OF ANNOTATED REDUCERS:
+--------------------------------
+By default, whenever a node finishes processing in LangGraph, it overrides key-value 
+pairs inside the global state. To prevent losing conversational context, this script 
+introduces an **Annotated Reducer (`add_messages`)**. This tells LangGraph to *append* incoming messages to a cumulative history list instead of replacing the entire key.
+
+1. STATE PREPARATION: Configures a `State` class where the `messages` attribute is 
+   explicitly wrapped inside the `add_messages` reducer function.
+2. CHAT BOT NODE (`superbot`): Implements a single node that captures the historical message 
+   array and submits it to a Groq LLM instance (`qwen3-32b`).
+3. WORKFLOW WIRING: Connects the `START` node to the bot executor node and ends 
+   at the terminal `END` state.
+4. RUNTIME STREAMING: Compiles the agent pipeline and processes queries, demonstrating 
+   how state frames are iteratively yielded back to the console.
+================================================================================
+"""
 
 from typing_extensions import TypedDict
 

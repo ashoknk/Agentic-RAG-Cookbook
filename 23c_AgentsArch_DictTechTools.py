@@ -1,3 +1,29 @@
+"""
+================================================================================
+This advanced script scales the ReAct agent framework to support complex, 
+highly technical research domains by integrating professional enterprise search 
+toolkits. It maps a robust network of APIs capable of parsing software 
+engineering exceptions, computing formal calculus integrations, and defining language etymologies.
+
+THE SPECIALIZED TOOL SUITE:
+---------------------------
+- `StackExchangeTool`: Interrogates technical developer forums to extract verified 
+  debugging discussions and exception remedies.
+- `WolframAlphaQueryRun`: Connects to a computational knowledge engine to perform 
+  exact mathematical reasoning, scientific computations, and formal calculus integrals.
+- `MerriamWebsterQueryRun`: Interfaces with authoritative dictionary datasets 
+  to return linguistic histories, exact lexical definitions, and etymologies.
+
+1. SUITE PROVISIONING: Configures API wrappers with distinct result ceilings and 
+   registers them to a single tool list alongside custom math components.
+2. ARCHITECTURE COMPILATION: Wraps the ecosystem inside a persistent `StateGraph` 
+   checkpointing layer with automated exception protection.
+3. AGENT TUNNEL EXECUTION: Launches targeted validation runs to track model 
+   routing: querying Python attribute errors (StackExchange), processing numeric 
+   definite integrals (WolframAlpha), and exploring lexicon terms (Merriam-Webster).
+================================================================================
+"""
+
 import os
 import warnings
 import logging
@@ -6,7 +32,7 @@ from typing_extensions import TypedDict
 from dotenv import load_dotenv
 
 # Set a custom User-Agent identifying your application
-os.environ["USER_AGENT"] = "Agentic-RAG-Cookbook/1.0 (contact: ashnaiku@codeaiwashnaiku.com)"
+os.environ["USER_AGENT"] = "Agentic-RAG-Cookbook/1.0 (contact: ash@codeaiwashnaiku.com)"
 
 # New Tech, Math, and Dictionary Tool Imports
 from langchain_community.tools import StackExchangeTool, WolframAlphaQueryRun, MerriamWebsterQueryRun

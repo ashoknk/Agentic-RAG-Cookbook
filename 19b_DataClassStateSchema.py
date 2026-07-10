@@ -1,3 +1,26 @@
+"""
+================================================================================
+This script introduces Python's standard **`@dataclass`** decorator as an alternative 
+state schema layer within a LangGraph pipeline. It contrasts against 
+dictionary lookups by demonstrating object-oriented attribute tracking.
+
+THE NOTATION HIGHLIGHT:
+-----------------------
+- **Dictionary Lookups (`state['name']`)**: Utilized across traditional `TypedDict` formats.
+- **Dot Notation (`state.name`)**: Enabled natively via Dataclasses, offering 
+  cleaner, more human-readable object manipulation within graph node logic.
+
+1. CLASS DECORATION: Constructs a state representation class structured around the 
+   native `@dataclass` format wrapper.
+2. NODE DESIGN: Configures logical worker functions that interface with the state 
+   parameters natively using object dot-notation signatures.
+3. GRAPH RE-COMPILATION: Registers nodes, hardcodes initialization vectors, and 
+   sets up conditional branching paths over the dataclass instance.
+4. OBJECT VALIDATION: Instantiates and submits `DataClassState` payload packages 
+   directly into the workflow engine to track terminal execution states.
+================================================================================
+"""
+
 import os
 import logging
 import warnings

@@ -1,3 +1,24 @@
+"""
+================================================================================
+This script showcases **RAG with Memory**, a stateful system architecture that 
+enables a retrieval-augmented generation app to manage multi-turn conversations. 
+Traditional RAG parses queries isolated from previous turns, preventing users 
+from submitting dependent follow-up questions. This pipeline bridges that gap 
+by integrating state reducer lists with a persistent checkpoint disk.
+
+1. STATE SCHEMATICS: Configures a `State` dict equipped with an append-only message 
+   reducer function (`add_messages`), ensuring conversational history accumulates 
+   cleanly across multiple invocations.
+2. CONTEXTUAL RETRIEVAL (`retrieve`): Targets the latest user message from the 
+   end of the history list and runs a local FAISS semantic lookup.
+3. DIALOGUE INJECTION (`generate`): Injects the extracted context *and* the full 
+   message history array into a specialized system prompt template using a 
+   `MessagesPlaceholder` construct.
+4. STATE PERSISTENCE (`MemorySaver`): Compiles the workflow alongside an in-memory 
+   checkpointer, enabling thread-isolated conversational memory tracks.
+================================================================================
+"""
+
 import os
 import warnings
 from langchain_core._api.deprecation import LangChainPendingDeprecationWarning

@@ -1,3 +1,23 @@
+"""
+================================================================================
+This script details the low-level architecture of LangChain tool binding, 
+demonstrating what happens behind the scenes of an autonomous agent. 
+Instead of relying on high-level wrappers like `create_agent`, it uncovers how 
+to explicitly bind tool definitions to a raw chat model and manually coordinate 
+the tool execution loop.
+
+THE TOOL CALL TRILOGY:
+----------------------
+1. **Schema Binding (`bind_tools`)**: Attaches functional blueprints directly to the LLM. 
+   This exposes the tool's signature (name, parameters, arguments) to the model.
+2. **Model Argument Generation**: The model processes a question and returns an 
+   `AIMessage` containing a structured `tool_calls` dictionary instead of generic text.
+3. **Manual Execution Loop**: Intercepts the generated argument dictionary, calls 
+   the tool function programmatically, appends the result as a `ToolMessage`, 
+   and returns the collection to the LLM for a final conversational answer.
+================================================================================
+"""
+
 import os
 import random
 from dotenv import load_dotenv

@@ -7,6 +7,30 @@
 # Pydantic models provide the richest feature set with field validation, descriptions, and nested structures.
 # Pydantic is ideal when you need deep nested schemas, default values, and strict runtime type checking.
 
+"""
+================================================================================
+This script introduces structured data extraction using **Pydantic (v2)** schemas 
+integrated directly into a LangChain execution flow. It demonstrates how to coerce 
+unstructured text generations from an LLM into reliable, nested data structures.
+
+
+WHY USE PYDANTIC IN PRODUCTION?
+-------------------------------
+While basic Python dictionaries act as simple key-value bags, Pydantic objects 
+enforce strict, runtime type validation, default fallback variables, and comprehensive 
+attribute tracking, making them ideal for enterprise API downstream consumption.
+
+1. OBJECT Blueprinting: Defines structured schema layers (`Actor`, `MovieDetails`) 
+   using Pydantic fields equipped with clear documentation descriptions.
+2. SCHEMA COMPLIANCE ENFORCEMENT: Uses `.with_structured_output()` to bind the 
+   target model (`qwen3-32b`), forcing the model to generate responses matching 
+   the precise schema dimensions.
+3. EXECUTION & PARSING: Invokes a request, revealing how attributes can be accessed 
+   via object dot-notation or cleanly exported to standard JSON strings with a 
+   single method call (`.model_dump()`).
+================================================================================
+"""
+
 import os
 import json
 from dotenv import load_dotenv

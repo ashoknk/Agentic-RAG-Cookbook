@@ -1,3 +1,20 @@
+"""
+================================================================================
+This script upgrades the core agent pattern introduced in `16a` by shifting from a 
+predictable mock function to a live, multi-step production weather lookup utility. 
+It highlights the ability of AI agents to coordinate real-world web requests and 
+process dynamic JSON responses over live endpoints.
+
+1. LIVE API ARCHITECTURE (`get_weather`): Constructs a two-tiered network call utility. 
+   First, it reaches out to a Geocoding API to resolve a city name string into geographic 
+   coordinates (latitude and longitude). Second, it invokes the Open-Meteo 
+   Forecast API using those coordinates to fetch live atmospheric metrics.
+2. AGENT BINDING: Hooks the function into `create_agent`.
+3. SYSTEM QUERY: Executes runtime user queries. The agent automatically handles parameter 
+   extraction, launches the sequence, parses the live dataset, and returns a clean answer.
+================================================================================
+"""
+
 import os
 import requests
 import langchain

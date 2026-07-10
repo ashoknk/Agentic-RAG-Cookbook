@@ -1,3 +1,20 @@
+"""
+================================================================================
+This script acts as an entry-level laboratory introduction to the core design patterns 
+of **AI Agents** within modern LangChain. It showcases how an LLM can move 
+beyond passive text generation to orchestrate execution flows, evaluating user prompts 
+and autonomously choosing when to invoke pre-registered external python tools.
+
+
+1. TOOL REGISTRATION: Declares a simple python native mock weather lookup function.
+2. RUNTIME COMPILATION: Uses `create_agent` to wrap an LLM alongside the tool array.
+3. AGENT INTERACTION: Dispatches a prompt requiring real-world external insight.
+4. MESSAGE CHAIN ANALYSIS: Iterates through and unpacks the execution state array, 
+   tracing how the agent creates `HumanMessage`, `AIMessage` (containing tool call requests), 
+   and final grounded `ToolMessage` payloads.
+================================================================================
+"""
+
 import os
 import random
 from dotenv import load_dotenv

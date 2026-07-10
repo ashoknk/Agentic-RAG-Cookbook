@@ -1,3 +1,34 @@
+"""
+================================================================================
+SCRIPT PURPOSE & OVERVIEW:
+--------------------------
+This script introduces the fundamental **ReAct (Reason + Action) Agent 
+Architecture** implemented using LangGraph. The core pattern focuses on an 
+iterative execution pipeline: the model selects specific functions (Act), 
+executes them to capture telemetry (Observe), and analyzes those outcomes to 
+decide whether to run further tasks or return a terminal response (Reason).
+
+
+THE CORE MECHANICS:
+-------------------
+- **Custom Native Toolkits**: Exposes native Python arithmetic functions (`add`, 
+  `subtract`, `multiply`, `divide`) alongside broad web scanners.
+- **Error Handling Safeguards (`handle_tool_errors=True`)**: Configures the `ToolNode` 
+  execution framework to gracefully intercept code exceptions or edge cases, 
+  transforming tracebacks into descriptive text sent back to the LLM instead of crashing.
+- **Thread Checkpoint Memory (`MemorySaver`)**: Integrates an active chat history 
+  checkpoint manager, enabling multi-step context persistence across distinct runs.
+
+1. PREPARATION & TOOL BINDING: Loads environmental credentials and attaches all 
+   functional tools directly to a Groq-hosted `qwen3-32b` instance.
+2. PIPELINE DESIGN: Connects the model node (`tool_calling_llm`) to a robust `ToolNode` 
+   canvas using LangGraph's native `tools_condition` branch router.
+3. SYSTEM VERIFICATION: Launches consecutive multi-step math prompts on a single 
+   thread, validating how the agent references historical math answers to solve 
+   dependent follow-up calculations.
+================================================================================
+"""
+
 import os
 import warnings
 import logging
@@ -7,7 +38,7 @@ from typing_extensions import TypedDict
 from dotenv import load_dotenv
 
 # Set a custom User-Agent identifying your application
-os.environ["USER_AGENT"] = "Agentic-RAG-Cookbook/1.0 (contact: ashnaiku@codeaiwashnaiku.com)"
+os.environ["USER_AGENT"] = "Agentic-RAG-Cookbook/1.0 (contact: ash@codeaiwashnaiku.com)"
 
 from langchain_community.tools import ArxivQueryRun, WikipediaQueryRun
 from langchain_community.utilities import WikipediaAPIWrapper, ArxivAPIWrapper
