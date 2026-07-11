@@ -1,22 +1,14 @@
 
 """
-Query Enhancement – Query Expansion Techniques
-In a RAG pipeline, the quality of the query sent to the retriever determines 
-how good the retrieved context is—and therefore, how accurate the LLM’s final answer will be. 
-That’s where Query Expansion/Enhancement comes in.
-
-🎯 What is Query Enhancement?
-Query enhancement refers to techniques used to improve or reformulate the user query to 
-retrieve better, more relevant documents from the knowledge base. 
-It is especially useful when:
-The original query is short, ambiguous, or under-specified.
-You want to broaden the scope to catch synonyms, related phrases, or spelling variants
-By expanding the query, you can increase the chances of retrieving relevant documents that may not match the original query verbatim but are still highly pertinent to the user’s intent.
-
 ================================================================================
-This script showcases **Query Expansion**, an elite query enhancement method 
-designed to solve the "short query" problem in RAG systems. When users submit 
-vague or brief questions, vector models can struggle to find direct keyword alignment. 
+This script showcases **Query Expansion**
+🎯 What is Query Enhancement?
+Query enhancement (Query Expansion Techniques) refers to techniques used to improve or reformulate the user query to retrieve better, more relevant documents from the knowledge base. 
+It is especially useful when:
+- The original query is short, ambiguous, or under-specified.
+- You want to broaden the scope to catch synonyms, related phrases, or spelling variants
+- By expanding the query, you can increase the chances of retrieving relevant documents that may not match the original query verbatim but are still highly pertinent to the user’s intent.
+
 This architecture forces an LLM to preprocess and rewrite the prompt, loading it 
 with rich technical vocabulary, domain synonyms, and deeper context *before* the vector database is ever touched.
 
@@ -71,8 +63,7 @@ EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 # ==============================================================================
 # 2. DATA INGESTION & VECTOR STORE SETUP
 # ==============================================================================
-# TODO change question to cybersecurity_data if needed
-FILE_NAME = "cybersecurity_data/langchain_crewai_dataset.txt"
+FILE_NAME = "cybersecurity_data/cybersecurity_dataset.txt"
 # Step 1: Load and split the dataset
 try:
     loader = TextLoader(FILE_NAME)
@@ -161,5 +152,5 @@ def run_query(query_text):
     print(f"\t✅ Final AI Answer:\n{response}")
 
 # Run tests
-run_query("What types of memory does LangChain support?")
-run_query("CrewAI agents?")
+run_query("IAM vs PAM for enterprise security?")
+run_query("CI/CD for DevSecOps?")

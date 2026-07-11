@@ -1,17 +1,14 @@
 """
-Maximal Marginal Relevance
-MMR (Maximal Marginal Relevance) is a powerful diversity-aware retrieval technique used in information retrieval and RAG pipelines to balance relevance and novelty when selecting documents.
-Imagine you ask a friend for book recommendations about space, and instead of giving you three different books on astronauts, they give you one on astronauts, one on planets, and one on alien life. That is exactly what **MMR** does for your AI search engine. While standard search only looks for the closest matching answers, MMR actively penalizes repetitive information. It forces the database to select chunks that are highly relevant to your question, but completely different from one another in text content. This ensures your LLM gets a well-rounded, diverse snapshot of information instead of reading the exact same fact repeated three times.
-"""
-
-"""
 ================================================================================
+MMR (Maximal Marginal Relevance) 
 This script introduces **Maximal Marginal Relevance (MMR)**, an advanced, 
 diversity-aware retrieval algorithm. While normal vector search exclusively 
 grabs the closest documents in vector space (which often leads to repetitive text), 
 MMR mathematically penalizes redundancy. It selects document chunks that are 
 highly relevant to the user query yet distinctly different from one another, 
 ensuring the downstream LLM receives a comprehensive, well-rounded overview.
+
+Imagine you ask a friend for book recommendations about space, and instead of giving you three different books on astronauts, they give you one on astronauts, one on planets, and one on alien life. That is exactly what **MMR** does for your AI search engine. While standard search only looks for the closest matching answers, MMR actively penalizes repetitive information. It forces the database to select chunks that are highly relevant to your question, but completely different from one another in text content. This ensures your LLM gets a well-rounded, diverse snapshot of information instead of reading the exact same fact repeated three times.
 
 
 1. TEXT INGESTION: Loads a multi-topic cybersecurity reference dataset and splits it into fine-grained character segments.
@@ -100,8 +97,6 @@ retriever = vectorstore.as_retriever(
 
 # When you set search_type="mmr", LangChain's native vector store class (like FAISS or Chroma) automatically catches that keyword parameter. Instead of calling its standard Euclidean distance or Cosine similarity method, the vector store shifts its internal mathematical routing to execute its built-in MMR diversification function.
 
-# You get the full benefit of the algorithm purely through that single configuration string without needing any extra imports!
-
 # ==============================================================================
 # 4. RAG PIPELINE CONSTRUCTION
 # ==============================================================================
@@ -132,30 +127,42 @@ rag_chain = create_retrieval_chain(retriever=retriever, combine_docs_chain=docum
 # ==============================================================================
 
 # Step 6: Define and run the Query
-# Expected MMR Pull: One chunk from IAM/PAM , one from DevSecOps , and one from EDR/XDR
-query = {"input": "How can an enterprise protect its data across identities, software pipelines, and user endpoints?"}
+def run_and_display_query(rag_chain, query_dict):
+    """
+    Executes a query against the RAG chain, prints the structured response,
+    and displays the diverse raw chunks retrieved via MMR.
+    """
+    # Execute the chain
+    response = rag_chain.invoke(query_dict)
+    
+    # Print the query and the LLM's final response
+    print(f"🔍 Query: {query_dict['input']}")
+    print("\n✅ Final Answer:")
+    print("-" * 20)
+    print(response["answer"])
+    
+    # Demonstrate MMR structural diversity
+    print("\n📚 Raw Chunks Retrieved by MMR (Notice the structural diversity):")
+    print("-" * 50)
+    for i, doc in enumerate(response["context"]):
+        print(f"Chunk {i+1}: {doc.page_content}")
+        
+    print("\n" + "="*60 + "\n")  # Visual separator between different queries
 
-# Expected MMR Pull: One chunk from API Security/OWASP flaws , one from CSPM/Cloud misconfigurations , and one from automated pipeline remediation
-query = {"input": "What are the primary ways attackers exploit corporate vulnerabilities, and how do automated tools mitigate these risks?"}
+    # 1. Define the three target queries
+query1 = {
+    "input": "How can an enterprise protect its data across identities, software pipelines, and user endpoints?"
+}
 
-# Expected MMR Pull: One chunk from Zero Trust Architecture , one from CSPM , and one from EDR/XDR behavior tracking
-query = {"input": "What is the modern strategy for securing enterprise infrastructure both on-premises and in the cloud?"}
+query2 = {
+    "input": "What are the primary ways attackers exploit corporate vulnerabilities, and how do automated tools mitigate these risks?"
+}
 
-response = rag_chain.invoke(query)
-print("🔍 Query :{}".format(query["input"]))
-print("\n✅ Final Answer:")
-print("-" * 20)
-print(response["answer"])
+query3 = {
+    "input": "What is the modern strategy for securing enterprise infrastructure both on-premises and in the cloud?"
+}
 
-# Because MMR was active, it forced a balance of relevance and diversity:
-# First Pick (Relevance): It grabbed a highly relevant chunk about how LangChain handles Agents 
-# (Sources 6, 14, or 16).
-# Next Picks (Diversity Penalty): When it looked at the remaining chunks, it saw other paragraphs 
-# talking about agents. It penalized them for being redundant and intentionally picked chunks that were 
-# different—safely capturing Conversational Memory (Source 5) and ConversationSummaryMemory (Source 15).
-
-# Demonstrate MMR:
-print("\n📚 Raw Chunks Retrieved by MMR (Notice the structural diversity):")
-print("-" * 50)
-for i, doc in enumerate(response["context"]):
-    print(f"Chunk {i+1}: {doc.page_content}")
+# 2. Run them using the reusable function
+run_and_display_query(rag_chain, query1)
+run_and_display_query(rag_chain, query2)
+run_and_display_query(rag_chain, query3)

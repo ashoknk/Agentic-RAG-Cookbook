@@ -60,7 +60,7 @@ llm = init_chat_model("groq:llama-3.1-8b-instant")
 
 # Step 1: Load and split documents
 # TODO change question to cybersecurity_data if needed
-FILE_NAME = "cybersecurity_data/langchain_crewai_dataset.txt"
+FILE_NAME = "cybersecurity_data/cybersecurity_dataset.txt.txt"
 loader = TextLoader(FILE_NAME)
 docs = loader.load()
 splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=50)
@@ -122,7 +122,7 @@ def custom_hyde_rag_pipeline(query):
 
 # --- ADDED/UPDATED: Step 7: Execution and Presentation ---
 if __name__ == "__main__":
-    target_query = "What memory modules does LangChain provide?"
+    target_query = "What OWASP API Top 10 represent in App Security and how are they applied?"
     answer = custom_hyde_rag_pipeline(target_query)
     
     print("=" * 60)

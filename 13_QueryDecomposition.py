@@ -1,4 +1,8 @@
 """
+================================================================================
+This script introduces **Query Decomposition**, a multi-hop reasoning strategy 
+designed to conquer complex, multi-part questions. 
+
 ### 🧠 What is Query Decomposition?
 Query decomposition is the process of taking a complex, multi-part question and 
 breaking it into simpler, atomic sub-questions that can each be retrieved and answered individually.
@@ -8,12 +12,6 @@ breaking it into simpler, atomic sub-questions that can each be retrieved and an
 - LLMs or retrievers may miss parts of the original question
 - It enables multi-hop reasoning (answering in steps)
 - Allows parallelism (especially in multi-agent frameworks)
-================================================================================
-This script introduces **Query Decomposition**, a multi-hop reasoning strategy 
-designed to conquer complex, multi-part questions. When a question contains 
-cross-framework comparisons or multi-layered tasks, standard retrieval chains 
-often suffer from information dilution. This workflow leverages an LLM to 
-break a single problem down into an array of isolated, simple sub-questions.
 
 
 1. INGESTION & SEARCH ENGINE SETUP: Ingests reference materials, indexing them 
@@ -54,8 +52,7 @@ logging.getLogger("transformers").setLevel(logging.ERROR)
 os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
 
 # Step 1: Load and embed the document
-# TODO change question to cybersecurity_data if needed
-FILE_NAME = "cybersecurity_data/langchain_crewai_dataset.txt"
+FILE_NAME = "cybersecurity_data/cybersecurity_dataset.txt"
 loader = TextLoader(FILE_NAME)
 docs = loader.load()
 
@@ -84,7 +81,7 @@ Sub-questions:
 decomposition_chain = decomposition_prompt | llm | StrOutputParser()
 
 # NOTE: Just for testing 
-# query = "How does LangChain use memory and agents compared to CrewAI?"
+# query = "How does IAM use for enterprise security?"
 # decomposition_question=decomposition_chain.invoke({"question": query})
 # print(decomposition_question)
 
@@ -100,57 +97,90 @@ Question: {input}
 """)
 qa_chain = create_stuff_documents_chain(llm=llm, prompt=qa_prompt)
 
-# Step 5: Full RAG pipeline logic
-# def full_query_decomposition_rag_pipeline(user_query):
-#     # Decompose the query
-#     print(f"🔍 Question :{user_query}\n")
-#     sub_qs_text = decomposition_chain.invoke({"question": user_query})
-#     # strip away any numbered list formats (like 1., 2., 3.) that the LLM generates 
-#     sub_questions = [q.strip("-•1234567890. ").strip() for q in sub_qs_text.split("\n") if q.strip()]
-    
-#     results = []
-#     for subq in sub_questions:
-#         docs = retriever.invoke(subq)
-#         result = qa_chain.invoke({"input": subq, "context": docs})
-#         results.append(f"Q: {subq}\nA: {result}")
-    
-#     return "\n\n".join(results)
-def full_query_decomposition_rag_pipeline(user_query):
-    print(f"========================================================")
-    print(f"🔍 Processing Complex User Query: '{user_query}'")
-    print(f"========================================================")
+
+def execute_query_decomposition_demo(user_query):
+    """
+    A single unified function that runs the entire Query Decomposition pipeline
+    and handles structured console printing for clear live demonstrations.
+    """
+    print("\n" + "=" * 75)
+    print(f"🚀 PHASE 1: RECEIVING COMPLEX MULTI-HOP QUERY")
+    print("=" * 75)
+    print(f"👉 Original User Query: '{user_query}'")
     
     # 1. Generate the sub-questions from the main query
     sub_qs_text = decomposition_chain.invoke({"question": user_query})
+    # print(f"\n📝 Decomposed Sub-Questions:\n{sub_qs_text}\n") #NOTE: Just for testing 
     
-    print("\n✨ Step 1: Query Enhancement (Decomposed Sub-Questions):")
-    print(sub_qs_text.strip())
-    print("-" * 50)
-    
-    # Clean up and split the text into a clean Python list
+    # Splits the raw LLM string response into individual lines by newline characters.
+    # Filters out empty lines and strips common list markers (numbers, dots, bullets, dashes).
+    # Returns a clean Python list containing only the text of the atomic sub-questions.
     sub_questions = [q.strip("-•1234567890. ").strip() for q in sub_qs_text.split("\n") if q.strip()]
     
-    # 2. Loop through individual sub-questions sequentially
-    results = []
+    print("\n✨ Step 1: Decomposition Engine Triggered")
+    print("🤖 The LLM broke your complex question down into these atomic sub-tasks:")
+    for idx, q in enumerate(sub_questions, 1):
+        print(f"   └── [Sub-Question {idx}]: {q}")
+    print("-" * 75)
+    
+    print("\n" + "=" * 75)
+    print(f"⚙️ PHASE 2: EXECUTING PARALLEL RETRIEVAL & ISOLATED RAG")
+    print("=" * 75)
+    
+    # 2. Loop through individual sub-questions sequentially to collect answers
+    #NOTE - comment below print statement if you see too much output in the console
+    sub_task_results = []
     for i, subq in enumerate(sub_questions, 1):
-        # Retrieve diverse chunks using MMR (k=4, lambda=0.7)
-        docs = retriever.invoke(subq)
+        print(f"\n🔄 Running Sub-Task {i}/{len(sub_questions)}:")
+        print(f"🔍 Question: \"{subq}\"")
         
+        # Retrieve diverse chunks using MMR (k=4, lambda=0.7)
+        retrieved_docs = retriever.invoke(subq)
+        
+        # Print exactly where the data is being sourced from to show MMR working
+        print(f"📚 MMR Retrieved {len(retrieved_docs)} relevant context blocks:")
+        for doc in retrieved_docs:
+            snippet = doc.page_content.replace("\n", " ")[:75]
+            print(f"   📄 Match: {snippet}...")
+            
         # Answer the atomic sub-question completely
-        answer = qa_chain.invoke({"input": subq, "context": docs})
-        results.append(f"🧩 Sub-Task {i}: {subq}\n💡 Grounded Answer: {answer}")
-    
-    return "\n\n".join(results)
+        answer = qa_chain.invoke({"input": subq, "context": retrieved_docs})
+        print(f"💡 Isolated Sub-Answer Generated ✔️")
+        
+        # Save results for the final summary phase
+        sub_task_results.append({
+            "num": i,
+            "question": subq,
+            "answer": answer.strip()
+        })
+        print("-" * 50)
 
-# Step 6: Run
-# query = "How does LangChain use memory and agents compared to CrewAI?"
-# final_answer = full_query_decomposition_rag_pipeline(query)
-# print("✅ Final Answer:\n")
-# print(final_answer)
-if __name__ == "__main__":
-    complex_query = "How does LangChain use memory and agents compared to CrewAI?"
-    final_report = full_query_decomposition_rag_pipeline(complex_query)
+    # 3. Print the Comprehensive Report Framework (Phase 3)
+    print("\n" + "=" * 75)
+    print("🏆 PHASE 3: FINAL SYNTHESIZED REPORT FRAMEWORK")
+    print("=" * 75)
+    print(f"🎯 ORIGINAL QUERY:\n   \"{user_query}\"\n")
+    print("🧩 DECOMPOSED RECONSTRUCTION:")
+    print("-" * 75)
     
-    print("\n✅ Final Combined Answer Framework:")
-    print("=" * 50)
-    print(final_report)
+    for item in sub_task_results:
+         print(f"📌 [SUB-TASK {item['num']}]: {item['question']}")
+         print(f"📝 ANSWER Framework:")
+         # Indent the answer block cleanly so it doesn't look like a generic wall of text
+         indented_answer = "\n         ".join(item['answer'].split("\n"))
+         print(f"         {indented_answer}")
+         print("-" * 75)
+         
+    print("\n" + "═" * 75 + "\n\n")
+
+
+if __name__ == "__main__":
+   #  complex_query_1 = "How do human cloud misconfigurations differ from vulnerabilities found in software dependencies, and how do automated tools address each?"
+   #  execute_query_decomposition_demo(complex_query_1)
+
+   # NOTE : Test this by uncommenting the below lines one at a time to see how the Query Decomposition pipeline handles each complex query.
+   #  complex_query_2 = "What are the primary indicators of a compromised superuser account compared to an infected corporate laptop, and what specialized tools track these threats?"
+   #  execute_query_decomposition_demo(complex_query_2)
+    
+    complex_query_5 = "What is the relationship between API security vulnerabilities and automated pipeline remediation tools?"    
+    execute_query_decomposition_demo(complex_query_5)
