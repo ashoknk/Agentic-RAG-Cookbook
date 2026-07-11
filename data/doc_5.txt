@@ -1,6 +1,0 @@
-Large Language Models (LLMs) and Fine-Tuning
-
-        Large Language Models (LLMs) are massive deep learning models trained on trillions of tokens of text data to predict the next word in a sequence. Built predominantly on the Transformer architecture, these models use billions of parameters to learn the syntax, semantics, and nuances of human language.
-        While foundational models exhibit impressive general capabilities, they often require domain-specific adaptation to perform specialized tasks accurately.
-        Fine-tuning is the process of taking a pre-trained foundational model and training it further on a smaller, targeted dataset to adapt it to a specific task or industry. Full parameter fine-tuning updates all weights within the network but requires immense computational power.
-        To mitigate this, developers use Parameter-Efficient Fine-Tuning (PEFT) techniques like LoRA (Low-Rank Adaptation), which freeze the original model weights and inject small, trainable rank-decomposition matrices into the network layers, dramatically reducing training costs and hardware requirements.

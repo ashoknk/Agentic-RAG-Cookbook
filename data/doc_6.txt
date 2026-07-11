@@ -1,6 +1,0 @@
-Text Splitting and Chunking Strategies
-
-        Chunking is the foundational data-preparation process in RAG where long documents are broken down into smaller, distinct segments of text before embedding. If chunks are too large, the embedding vector becomes diluted with multiple topics, causing the retrieval system to lose precision.
-        If chunks are too small, critical context is severed, leaving the LLM with incomplete information. Striking a balance is vital for the semantic search engine to pinpoint the right data.
-        Common chunking strategies range from fixed-size text splitting to semantic chunking. Fixed-size chunking splits text based on a strict character or token count, often utilizing a "chunk overlap" buffer (e.g., 50 tokens) to ensure that context spanning across boundaries isn't lost.
-        Advanced semantic chunking uses natural language processing to identify sentence boundaries, paragraph breaks, or changes in semantic drift, dividing the text only when the underlying topic actually shifts.

@@ -2,14 +2,12 @@
 ================================================================================
 EMBEDDING MECHANICS & SEMANTIC SIMILARITY CHECK
 ================================================================================
-Purpose:
-    Provides a low-level, practical understanding of text embeddings and how 
+Provides a low-level, practical understanding of text embeddings and how 
     computers mathematically calculate textual context and semantic similarity.
 
-What it does:
-    1. Connects to OpenAI's model via LangChain.
-    2. Converts raw text strings into fixed-length vectors.
-    3. Implements manual Cosine Similarity from scratch using numpy (`np.dot` 
+1. Connects to OpenAI's model via LangChain.
+2. Converts raw text strings into fixed-length vectors.
+3. Implements manual Cosine Similarity from scratch using numpy (`np.dot` 
        and `np.linalg.norm`) to illustrate how vector alignment translates 
        into numerical similarity scores.
 
@@ -50,6 +48,7 @@ def compare_embeddings(text1: str, text2: str):
     A score near 1.0 indicates high contextual/semantic similarity.
     A score near 0.0 indicates no semantic relationship.
     """
+    # embed_query is a function designed to convert a single user search string into a vector (a list of floating-point numbers)
     emb1 = np.array(embeddings.embed_query(text1))
     emb2 = np.array(embeddings.embed_query(text2))
     

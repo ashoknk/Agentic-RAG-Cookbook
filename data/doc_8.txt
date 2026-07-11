@@ -1,6 +1,0 @@
-Prompt Engineering and Prompt Templates
-
-        Prompt engineering is the empirical discipline of structuring, formatting, and refining input text to effectively guide the behavior and output of a Large Language Model. Because LLMs are highly sensitive to context, minor adjustments in instructions, constraints, or formatting can drastically alter the quality of the response.
-        Prompt engineering establishes the operational guardrails, tone, persona, and logical reasoning pathways for an AI application.
-        Prompt templates are reusable, dynamic prompt structures that contain placeholders for variables like user queries, chat history, and retrieved context. In production RAG systems, developers use frameworks like LangChain to programmatically assemble prompts on the fly.
-        Advanced prompting strategies include Few-Shot Prompting, which provides the model with exemplary input-output pairs to demonstrate a task, and Chain-of-Thought (CoT) prompting, which explicitly instructs the model to break down its reasoning step-by-step before delivering a final answer.

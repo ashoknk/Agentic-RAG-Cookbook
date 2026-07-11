@@ -9,7 +9,7 @@ Purpose:
 What it does:
     1. Creates a local 'data/' directory if it doesn't already exist.
     2. Writes distinct, domain-specific articles detailing core AI and RAG 
-       concepts (e.g., Chunking, Embeddings, Evaluation, Agents, Multi-Modal).
+       concepts.
     3. Serves as the starting point for simulating document ingestion workflows.
 
 Usage:
@@ -153,11 +153,13 @@ def create_sample_documents(data_dir: str):
     else:
         print(f"[INFO] Directory '{data_dir}' already exists. Files will be overwritten/updated.")
 
+
     # Iterate and write content to separate text files
     for i, content in enumerate(sample_docs_content):
         file_name = f"doc_{i}.txt"
         file_path = os.path.join(data_dir, file_name)
         
+        # Using encoding='utf-8' is a standard best practice to avoid system's default encoding
         try:
             with open(file_path, "w", encoding='utf-8') as f:
                 # Use strip() to remove unnecessary leading/trailing blank lines in the files

@@ -1,6 +1,0 @@
-LangChain and LangChain Expression Language (LCEL)
-
-        LangChain is an open-source development framework designed to simplify the construction of applications powered by large language models. Foundational LLM applications require chaining together multiple disparate components, including data loaders, vector stores, prompt formatting, model calls, and output parsers.
-        LangChain provides modular abstractions and standardized interfaces for these components, allowing developers to build robust AI workflows without reinventing the wheel.
-        LangChain Expression Language (LCEL) is a declarative syntax provided by the framework to easily compose chains from individual components. Utilizing the Linux pipe operator (|), LCEL allows developers to stream data sequentially from one runnable object to the next with minimal boilerplate code.
-        Under the hood, LCEL automatically provides built-in support for parallel execution, asynchronous streaming, intermediate state inspection, and fallback handling, making production deployment highly efficient.

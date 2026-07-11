@@ -1,6 +1,0 @@
-Advanced Retrieval: Re-ranking and Query Expansion
-
-        Basic vector retrieval often struggles with complex queries or ambiguous phrasing because it relies entirely on a single mathematical distance calculation. To overcome this limitation, advanced RAG architectures implement Query Expansion techniques.
-        Query expansion uses an LLM to take a user's short input and generate multiple variations, sub-questions, or hypothetical documents (Hypothetical Document Embeddings or HyDE), broadening the net cast into the vector store to catch all relevant documents.
-        Once a broad set of documents is retrieved, the system applies a two-stage retrieval process using a Re-ranker. While vector databases are excellent at scanning millions of documents quickly to find the top 50 matches, they lack fine-grained semantic comprehension.
-        A Cross-Encoder re-ranking model is then introduced to evaluate the exact user query against those 50 retrieved documents simultaneously, re-ordering them so that the absolute most contextually rich fragments are placed at the very top for the LLM to read.
