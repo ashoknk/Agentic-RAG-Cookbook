@@ -1,3 +1,16 @@
+"""
+10_ReRanking.py: Initializes the re-ranker LLM with default settings. The prompt template casually asks the LLM to provide a comma-separated list of ranked indices (e.g., 2,1,3,0,...). It lacks formatting enforcement, leaving it vulnerable to LLM conversational fluff or explanations.
+10b_ReRanking.py: Enforces strict adherence by explicitly setting the model's temperature=0.0. The prompt template is re-engineered with severe structural guardrails: it instructs the LLM to output a JSON-like array wrapper ([index, index, index]) and explicitly bans conversational intros, summaries, or explanatory tokens.
+
+10_ReRanking.py splits the string directly by commas:
+    indices = [int(x.strip()) - 1 for x in ranking_response.split(",") if x.strip().isdigit()]  
+10b_ReRanking.py adds an intermediate text-cleaning layer to strip away the brackets before processing the comma breakdown:
+    cleaned_response = ranking_response.replace("[", "").replace("]", "")
+    indices = [int(x.strip()) - 1 for x in cleaned_response.split(",") if x.strip().isdigit()]
+
+10_ReRanking.py is written as a simple, procedural top-to-bottom script execution loop. It runs exactly one hardcoded evaluation question against the pipeline during execution.
+10b_ReRanking.py abstracts the entire two-stage RAG mechanism into a reusable python function framework: run_reranking_pipeline(test_title, query_text). This allows it to easily execute an automated test suite under an if __name__ == "__main__": block, sequentially evaluating three completely different technical multi-hop cybersecurity scenarios.
+"""
 import os
 import logging
 import warnings
@@ -161,10 +174,10 @@ if __name__ == "__main__":
 
     # Sample 2: Evaluates architectural shifts against perimeter models and cloud posture stability.
     # The Re-ranker must prioritize structural network design and CSPM self-healing over software pipelines.
-    query2 = "How does Zero Trust Architecture differ from traditional security, and how does CSPM help manage cloud risks?"
-    run_reranking_pipeline("SAMPLE TEST 2: Network Architecture vs Cloud Misconfigurations", query2)
+    # query2 = "How does Zero Trust Architecture differ from traditional security, and how does CSPM help manage cloud risks?"
+    # run_reranking_pipeline("SAMPLE TEST 2: Network Architecture vs Cloud Misconfigurations", query2)
 
     # Sample 3: Focuses heavily on CI/CD pipeline scanning and real-time behavioral monitoring.
     # Expects the system to elevate DevSecOps "Shift-Left" concepts and automated threat responses.
-    query3 = "How can we use automation to detect software vulnerabilities early and monitor endpoint threats in real time?"
-    run_reranking_pipeline("SAMPLE TEST 3: DevSecOps Automation & Threat Detection", query3)
+    # query3 = "How can we use automation to detect software vulnerabilities early and monitor endpoint threats in real time?"
+    # run_reranking_pipeline("SAMPLE TEST 3: DevSecOps Automation & Threat Detection", query3)

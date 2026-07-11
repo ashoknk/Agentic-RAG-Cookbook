@@ -141,15 +141,31 @@ for doc, score in results_with_score:
 # 5. RETRIEVER: LangChain Runnable Interface
 # ==============================================================================
 
+# Strategy A: Score Threshold
 # Threshold search ensures we only get relevant results
-retriever = vector_store.as_retriever(
+retriever_threshold = vector_store.as_retriever(
     search_type="similarity_score_threshold",
     search_kwargs={"k": 1, "score_threshold": 0.4},
 )
 
 print("\n--- 3.Retriever Result as_retriever() ---")
+
 question3 = "Tell me about breakfast"
-retrieved_docs = retriever.invoke(question3)
+retrieved_docs = retriever_threshold.invoke(question3)
 print(f"Question: {question3}")
 for doc in retrieved_docs:
     print(f"Found: {doc.page_content}")
+
+
+
+# Strategy B: MMR (Maximum Marginal Relevance)
+# MMR tries to find a balance between relevance and diversity in results
+retriever_mmr = vector_store.as_retriever(
+    search_type="mmr",
+    search_kwargs={"k": 1},
+)
+
+print("\n--- 4. Retriever: MMR (Diversity Search) ---")
+mmr_res = retriever_mmr.invoke(question2, filter={"source": "news"})
+for doc in mmr_res:
+    print(f'* Found: "{doc.page_content}"')    

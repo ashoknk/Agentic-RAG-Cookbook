@@ -63,10 +63,14 @@ vectorstore = FAISS.from_documents(docs, embeddings)
 # We retrieve a larger number of documents than we intend to use in the final answer
 retriever = vectorstore.as_retriever(search_kwargs={"k": 8})
 
-query = "What is the modern approach to enterprise security, and how do we protect privileged access and endpoints?"
-# query = "How does Zero Trust Architecture differ from traditional security, and how does CSPM help manage cloud risks?"
-# query = "How can we use automation to detect software vulnerabilities early and monitor endpoint threats in real time?"
-retrieved_docs = retriever.invoke(query)
+query1 = "What is the modern approach to enterprise security, and how do we protect privileged access and endpoints?"
+retrieved_docs = retriever.invoke(query1)
+
+# query2 = "How does Zero Trust Architecture differ from traditional security, and how does CSPM help manage cloud risks?"
+# retrieved_docs = retriever.invoke(query2)
+
+# query3 = "How can we use automation to detect software vulnerabilities early and monitor endpoint threats in real time?"
+# retrieved_docs = retriever.invoke(query3)
 
 # ==============================================================================
 # 4. STAGE 2: RE-RANKING (Precision Sorting)
@@ -104,11 +108,11 @@ formatted_docs_str = "\n".join(doc_lines)
 
 # Execute re-ranking
 ranking_response = ranking_chain.invoke({
-    "question": query, 
+    "question": query1, 
     "documents": formatted_docs_str
 })
 
-print(f"🔍 Query: {query}")
+print(f"🔍 Query: {query1}")
 print(f"Re-ranking response: {ranking_response}")
 print("====================================")
 # ==============================================================================

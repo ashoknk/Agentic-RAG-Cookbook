@@ -30,9 +30,6 @@ from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_core.documents import Document
 from langchain.chat_models import init_chat_model
 
-# DIFFERENCE: FAISS and ChromaDB vs InMemoryVectorStore
-# InMemoryVectorStore stores vectors in a simple Python dictionary/NumPy array completely in volatile RAM, wiping on shutdown.
-# FAISS and ChromaDB utilize native index engines, support  disk persistence, and scale to millions of vectors.
 
 # ==============================================================================
 # 1. INITIAL PREPARATION: Models & Store Setup

@@ -102,8 +102,8 @@ hybrid_retriever = EnsembleRetriever(
 # ==============================================================================
 
 # Initialize LLM and Prompt
-MODEL_NAME_CHAT = "openai:gpt-3.5-turbo"
-llm = init_chat_model(MODEL_NAME_CHAT, temperature=0.2)
+MODEL_NAME_LLM = "openai:gpt-4o-mini"
+llm = init_chat_model(MODEL_NAME_LLM, temperature=0.2)
 prompt = PromptTemplate.from_template("""
 Answer the question based on the context below.
 Context: {context}
