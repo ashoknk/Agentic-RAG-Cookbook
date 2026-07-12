@@ -45,7 +45,6 @@ from dotenv import load_dotenv
 
 from langchain.chat_models.base import init_chat_model
 from langchain_openai import OpenAIEmbeddings
-from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain_community.vectorstores import Chroma
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -176,15 +175,16 @@ robotics, and autonomous systems.
     print(f'Total vectors now: {vectorstore._collection.count()}.')
     return new_chunks
 
+# ==========================================
+### main() ###
+# ==========================================
+
 
 def main():
     os.environ['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY')
 
     # documents = load_documents(DATA_DIR)
     # text_splitter, chunks = make_text_chunks(documents)
-
-    # We still need text_splitter isolated to chunk manual additions later on
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50, separators=[' '])
 
     # Connect directly to your existing disk storage
     vectorstore = create_vector_store(PERSIST_DIRECTORY)
@@ -199,6 +199,8 @@ def main():
     query_rag_lcel('What is deep learning?', rag_chain, retriever)
 
     print('\n===================== Add New Documents =====================')
+    # We need text_splitter to chunk manual additions later on
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50, separators=[' '])
     add_new_documents(vectorstore, text_splitter)
 
     print('===================== Query Updated Vector Store =====================')
