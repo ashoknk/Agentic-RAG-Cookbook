@@ -98,6 +98,7 @@ vectorstore = Chroma.from_documents(
 print(f"Vector store created with {vectorstore._collection.count()} vectors.")
 print(f"Data persisted to: {PERSISTENT_DIRECTORY}")
 
+
 # ==============================================================================
 # 4. UTILITY: Formatted Output Helper
 # ==============================================================================

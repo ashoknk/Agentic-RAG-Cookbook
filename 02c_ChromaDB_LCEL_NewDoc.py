@@ -61,45 +61,19 @@ DATA_DIR = 'data'
 PERSIST_DIRECTORY = './chroma_db'
 COLLECTION_NAME = 'rag_collection'  # collection_name acts as a unique namespace that groups and stores your specific embeddings
 
-# Load documents from the local directory
-def load_documents(data_dir: str):
-    loader = DirectoryLoader(
-        data_dir,
-        glob='*.txt',
-        loader_cls=TextLoader,
-        loader_kwargs={'encoding': 'utf-8'},
-    )
-    documents = loader.load()
-    print(f'Loaded {len(documents)} documents.')
-    return documents
 
-# Initialize text splitter
-# length_function=len tells the algorithm how to calculate the size of a chunk. 
-#  By using len, you are instructing the splitter to use standard character counts to evaluate chunk_size=500
-#  If you do not specify length_function, absolutely nothing changes because len is already the default value.
-def make_text_chunks(documents):
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=500,
-        chunk_overlap=50,
-        length_function=len,
-        separators=[' '],
-    )
-    chunks = text_splitter.split_documents(documents)
-    print(f'Created {len(chunks)} chunks from {len(documents)} documents.')
-    return text_splitter, chunks
-
-## Initialize Chromadb with Open AI embeddings
-def create_vector_store(chunks, persist_directory: str):
-
+## Load existing Chromadb with Open AI embeddings from disk
+def create_vector_store(persist_directory: str):
     embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-    vectorstore = Chroma.from_documents(
-        documents=chunks,
-        embedding=embeddings,
+    
+    # Load the existing vectorstore from disk without .from_documents()
+    vectorstore = Chroma(
         persist_directory=persist_directory,
-        collection_name=COLLECTION_NAME,
+        embedding_function=embeddings,
+        collection_name=COLLECTION_NAME
     )
-    print(f'Vector store created with {vectorstore._collection.count()} vectors.')
-    print(f'Persisted to: {persist_directory}')
+    print(f'Loaded existing vectorstore with {vectorstore._collection.count()} vectors.')
+    print(f'Data persisted to: {persist_directory}')
     return vectorstore
 
 ## Convert vector store to retriever
@@ -110,6 +84,7 @@ def build_retriever(vectorstore):
 # Part1 : Create a custom prompt using RunnablePassthrough, retriever and format_docs()
 # ==========================================
 # Create RAG Chain Alternative - Using LCEL (LangChain Expression Language)    
+
 # ChatPromptTemplate.from_template 
 #    - EXPECTS: A single, raw, continuous text string.
 #    - BEHAVIOR: It automatically creates a default "Human" message role under 
@@ -120,6 +95,9 @@ def build_retriever(vectorstore):
 # `RunnablePassthrough()` to perfectly control the dictionary keys. The question string bypasses formatting and 
 # is sent as-is into the 'question' key via `RunnablePassthrough()`.
 
+# The same question string is simultaneously routed through the retriever, 
+# and the resulting documents are fed into `format_docs` to build the 'context' key.
+
 # appends `| StrOutputParser()` at the end of the execution stream. 
 # This instantly intercepts the raw AI message chunk, extracts only the text body
 
@@ -127,12 +105,12 @@ def build_rag_chain(retriever):
     llm=init_chat_model("openai:gpt-4o-mini")
     prompt = ChatPromptTemplate.from_template(
         '''Use the following context to answer the question.
-If you don't know the answer based on the context, say you don't know.
-Provide specific details from the context to support your answer.
+            If you don't know the answer based on the context, say you don't know.
+            Provide specific details from the context to support your answer.
 
-Context:{context}
-Question: {question}
-Answer:''' )
+            Context:{context}
+            Question: {question}
+            Answer:''' )
 
     def format_docs(docs):
         return '\n\n'.join(doc.page_content for doc in docs)
@@ -151,6 +129,7 @@ Answer:''' )
 
 
 def query_rag_lcel(question: str, rag_chain, retriever):
+    print('-' * 50)
     print(f'Question: {question}')
     print('-' * 50)
 
@@ -201,9 +180,16 @@ robotics, and autonomous systems.
 def main():
     os.environ['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY')
 
-    documents = load_documents(DATA_DIR)
-    text_splitter, chunks = make_text_chunks(documents)
-    vectorstore = create_vector_store(chunks, PERSIST_DIRECTORY)
+    # documents = load_documents(DATA_DIR)
+    # text_splitter, chunks = make_text_chunks(documents)
+
+    # We still need text_splitter isolated to chunk manual additions later on
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50, separators=[' '])
+
+    # Connect directly to your existing disk storage
+    vectorstore = create_vector_store(PERSIST_DIRECTORY)
+
+    # vectorstore = create_vector_store(chunks, PERSIST_DIRECTORY)
     retriever = build_retriever(vectorstore)
     rag_chain = build_rag_chain(retriever)
 
@@ -212,7 +198,7 @@ def main():
     query_rag_lcel('What is machine learning?', rag_chain, retriever)
     query_rag_lcel('What is deep learning?', rag_chain, retriever)
 
-    print('===================== Add New Documents =====================')
+    print('\n===================== Add New Documents =====================')
     add_new_documents(vectorstore, text_splitter)
 
     print('===================== Query Updated Vector Store =====================')
