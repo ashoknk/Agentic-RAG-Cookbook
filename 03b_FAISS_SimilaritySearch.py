@@ -8,9 +8,9 @@ practical differences between simple string matching and mathematical vector spa
    index from disk using an identical embedding model configuration.
 2. STANDARD RETRIEVAL: Executes a classic `similarity_search` to pull back the 
    top `k=3` text chunks based on semantic proximity to a target user query.
-3. DISTANCE CALCULATIONS: Evaluates retrieval quality by returning the raw L2 
+3. DISTANCE CALCULATIONS: `similarity_search_with_score` Evaluates retrieval quality by returning the raw L2 
    Euclidean distance scores where lower values dictate structural similarity.
-4. METADATA FILTERING: Introduces conditional post-retrieval subset filtering 
+4. METADATA FILTERING: `filter=filter_dict` introduces conditional post-retrieval subset filtering 
    by target properties (e.g., restricted strictly to deep learning topics).
 ================================================================================
 """
@@ -26,6 +26,7 @@ warnings.filterwarnings('ignore')
 load_dotenv()
 
 # Add this BEFORE importing any vector store or heavy math libraries
+# NOTE : This is an unsafe workaround used to bypass an OpenMP multi-initialization crash
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
@@ -70,6 +71,7 @@ for i, doc in enumerate(results):
     print(f"{i+1}. Source: {doc.metadata['source']}")
     print(f"   Content: {doc.page_content.strip()[:180]}...\n")
 
+
 # --- Option B: Similarity Search with Distance Scores ---
 # Note: FAISS uses L2 distance (Euclidean). Lower scores mean closer/more similar items.
 results_with_scores = loaded_vectorstore.similarity_search_with_score(query, k=3)
@@ -79,11 +81,13 @@ for doc, score in results_with_scores:
     print(f"Score (Lower=Better): {score:.3f} | Source: {doc.metadata['source']}")
     print(f"Content Preview: {doc.page_content.strip()[:100]}...\n")
 
+
 # --- Option C: Search with Metadata Filtering ---
 # NOTE: FAISS filters post-retrieval. If your top 'k' results don't match the criteria, 
 # you will receive fewer results than requested.
 print("--- C: Search with Metadata Filtering ---")
-filter_dict = {"topic": "DL"}
+# filter_dict = {"topic": "ML"} # Restrict results to Machine Learning topic #NOTE try this first
+filter_dict = {"topic": "DL"} # Restrict results to Deep Learning topic
 filtered_results = loaded_vectorstore.similarity_search(
     query,
     k=3,

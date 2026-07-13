@@ -55,7 +55,6 @@ embeddings = OpenAIEmbeddings(
     dimensions=512
 )
 
-#TODO load from text file 
 # Sample Data
 sample_documents = [
     Document(
@@ -138,7 +137,8 @@ streaming_rag_chain = (
 
 # ==============================================================================
 # 4. IMPLEMENTATION 3: Conversational RAG Chain (Chat History-Aware RAG)
-#    - This chain acts like an interactive chatbot by remembering previous questions and answers, allowing users to ask context-dependent follow-up questions.
+#    - This chain acts like an interactive chatbot by remembering previous questions and answers, 
+#       allowing users to ask context-dependent follow-up questions.
 #    - KEY VARIABLES: It uses `{chat_history}` inside a `from_messages` list to physically inject past dialogue, 
 #       and `RunnablePassthrough.assign()` to map incoming dictionary keys like `{input}` dynamically through your custom retriever function.
 # ==============================================================================
@@ -157,8 +157,6 @@ conversational_rag = (
     | llm
     | StrOutputParser()
 )
-
-
 
 # ==============================================================================
 # 5. EXECUTION AND TESTING
@@ -215,8 +213,10 @@ if __name__ == "__main__":
     question1 = "What is the difference between AI and machine learning?"
     test_standard_chains_lcel(question1)
     print("="*50)
+
     test_standard_chains_stream(question1)
     print("="*50)
 
     question2 = "What is machine learning?"
     question2_followup = "how it is difference from AI?"
+    test_conversational_chain(question2, question2_followup)

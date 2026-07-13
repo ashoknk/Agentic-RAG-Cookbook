@@ -6,7 +6,7 @@ framework driven by a Groq inference engine.
 
 1. DATABASE CONNECTIVITY: Deserializes the directory-persisted file database index 
    and links it to a localized vector space retriever object.
-2. LCEL PIPELINE ASSEMBLIES: Maps out clean functional orchestrations handling 
+2.  LangChain Expression Language (LCEL) PIPELINE ASSEMBLIES: Maps out clean functional orchestrations handling 
    dynamic template interpolation, background prompt generation, and direct LLM calls.
 3. MULTI-PATTERN RUNTIMES: Validates the end-to-end system across standard, 
    real-time streaming, and history-aware conversational modes utilizing text file knowledge.
@@ -95,22 +95,21 @@ If you don't know the answer based on the context, say you don't know.
 Provide specific details from the context to support your answer.
 
 Context: {context}
-
 Question: {question}
-
 Answer:""")
 
-conversational_prompt = ChatPromptTemplate.from_messages([
-    ("system", "You are a helpful AI assistant. Use the provided context to answer questions."),
-    ("placeholder", "{chat_history}"),
-    ("human", "Context: {context}\n\nQuestion: {input}"),
-])
 
 # ==============================================================================
 # 4. IMPLEMENTATION: RAG Chains (LCEL)
 # ==============================================================================
 
-# Standard RAG Chain returning clean text string output
+
+# ==============================================================================
+#  Simple RAG Chain (Standard/Synchronous RAG)
+#    -  This chain processes the query silently behind the scenes and waits until the entire text answer is fully generated before printing the final result all at once.
+#    - KEY VARIABLE: The `StrOutputParser()` at the end is crucial because it automatically unpacks the final complex AI message object and returns a clean, plain Python string.
+# ==============================================================================
+
 simple_rag_chain_lcel = (
     {"context": retriever | format_docs, "question": RunnablePassthrough()}
     | simple_prompt
@@ -118,12 +117,30 @@ simple_rag_chain_lcel = (
     | StrOutputParser()
 )
 
-# Streaming RAG Chain returning raw message chunks
+# ==============================================================================
+#    Streaming RAG Chain (Real-Time/Streaming RAG)
+#    - This chain emits words piece-by-piece in real-time as they are being thought up by the LLM, creating a highly responsive user experience.
+#    - KEY VARIABLE: By removing `StrOutputParser()`, the chain outputs a stream of raw `AIMessageChunk`
+#      objects whose `.content` properties can be incrementally extracted and flushed to the terminal using a `stream()` loop.
+# ==============================================================================
+
 streaming_rag_chain = (
     {"context": retriever | format_docs, "question": RunnablePassthrough()}
     | simple_prompt
     | llm
 )
+
+# ==============================================================================
+#  Conversational RAG Chain (Chat History-Aware RAG)
+#    - This chain acts like an interactive chatbot by remembering previous questions and answers, 
+#       allowing users to ask context-dependent follow-up questions.
+# ==============================================================================
+
+conversational_prompt = ChatPromptTemplate.from_messages([
+    ("system", "You are a helpful AI assistant. Use the provided context to answer questions."),
+    ("placeholder", "{chat_history}"),
+    ("human", "Context: {context}\n\nQuestion: {input}"),
+])
 
 # Conversational RAG Chain tracking manual chat history input arrays
 conversational_rag = (

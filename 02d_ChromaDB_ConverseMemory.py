@@ -31,13 +31,8 @@ from dotenv import load_dotenv
 # Core LangChain Imports
 from langchain.chat_models.base import init_chat_model
 from langchain_openai import OpenAIEmbeddings
-from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain_community.vectorstores import Chroma
-from langchain_core.documents import Document
-from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.runnables import RunnablePassthrough
-# from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.messages import HumanMessage, AIMessage
 
 # Modified Chain Imports using langchain_classic
@@ -74,6 +69,11 @@ retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 # 2. CONTEXTUALIZE QUESTION (History-Aware)
 # ==========================================
 
+# contextualize_q_prompt takes the raw chat_history and the new user input, passes them to the LLM, and outputs a single, standalone query that has all pronouns resolved. Its sole purpose is search-query reformulation, not question answering. For example:
+#   Input: "What are its main types?"
+#   History: (Conversation about Machine Learning)
+#   Output from this step: "What are the main types of machine learning?"
+
 contextualize_q_system_prompt = """You are an expert query-reformulation assistant. 
 Your task is to analyze a conversation history and a new user question. 
 
@@ -92,6 +92,7 @@ contextualize_q_prompt = ChatPromptTemplate.from_messages([
 
 # Create history aware retriever using langchain_classic
 # retriever is used to create the history-aware retriever
+# https://reference.langchain.com/python/langchain-classic/chains/history_aware_retriever/create_history_aware_retriever
 history_aware_retriever = create_history_aware_retriever(
     llm, retriever, contextualize_q_prompt
 )
@@ -99,6 +100,9 @@ history_aware_retriever = create_history_aware_retriever(
 # ==========================================
 # 3. QA & DOCUMENT CHAIN
 # ==========================================
+# qa_system_prompt is aware of past questions and responses.
+# Because of the MessagesPlaceholder("chat_history"), the actual conversation history is injected directly into the final prompt sent to the LLM.
+
 qa_system_prompt = """You are an assistant for question-answering tasks. 
 Use the following pieces of retrieved context to answer the question. 
 If you don't know the answer, just say that you don't know. 
@@ -114,10 +118,10 @@ qa_prompt = ChatPromptTemplate.from_messages([
 
 # The create_history_aware_retriever function inherently expects a structured chat prompt 
 # that can seamlessly insert an ongoing conversation stream.
-#TODO: explain the purpose of create_stuff_documents_chain
 question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
 
 # Create conversational RAG chain using langchain_classic
+# https://reference.langchain.com/python/langchain-classic/chains/retrieval/create_retrieval_chain
 conversational_rag_chain = create_retrieval_chain(
     history_aware_retriever, 
     question_answer_chain
