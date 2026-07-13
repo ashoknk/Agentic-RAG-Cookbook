@@ -5,6 +5,11 @@ Language Model (LLM via Groq) using LangChain. It showcases a modern "GraphRAG"
 pattern where natural language questions are translated into Cypher database 
 queries automatically by an LLM.
 
+Neo4j is a native graph database, designed specifically to store, manage, and query highly interconnected data. 
+Unlike traditional relational databases that use tables, rows, and columns, 
+Neo4j treats relationships as first-class citizens, 
+allowing users to map out data exactly like sketching ideas on a whiteboard
+
 PREREQUISITES:
 - A running Neo4j database instance.
 - Environment variables configured in a `.env` file:  NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD, and GROQ_API_KEY.
@@ -44,6 +49,7 @@ load_dotenv()
 NEO4J_URI = os.getenv("NEO4J_URI")
 NEO4J_USERNAME = os.getenv("NEO4J_USERNAME")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
+# Neo4j database wrapper for various graph operations.
 graph=Neo4jGraph(url=NEO4J_URI,username=NEO4J_USERNAME,password=NEO4J_PASSWORD)
 
 
@@ -71,22 +77,24 @@ FOREACH (genre in split(row.genres, '|') |
 graph.query(movie_query)
 graph.refresh_schema()
 # print(graph.schema)
+
+GROQ_MODEL= "openai/gpt-oss-20b"
 groq_api_key=os.getenv("GROQ_API_KEY")
-
-
-llm=ChatGroq(groq_api_key=groq_api_key,model_name="openai/gpt-oss-20b")
-print(llm)
+llm=ChatGroq(groq_api_key=groq_api_key,model_name=GROQ_MODEL)
+# print(llm) #NOTE: Just for testing 
 
 # NOTE : when you set this to True, it's best practice to ensure your Neo4j database user (NEO4J_USERNAME) 
 # only has read-only permissions if you are just querying data, especially if this app will ever be exposed to end-users.
 
+# Chain for question-answering against a graph by generating Cypher statements.
 chain = GraphCypherQAChain.from_llm(
     graph=graph, 
     llm=llm, 
     verbose=True, 
     allow_dangerous_requests=True  # Add this line
 )
-# print("Chain:", chain)
+# print("Chain:", chain) #NOTE: Just for testing 
+
 
 print("===============================")
 query1 = "Who was the director of the movie GoldenEye?"

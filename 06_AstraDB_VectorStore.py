@@ -4,12 +4,14 @@ This script transitions the codebase from volatile local RAM to a persistent,
 enterprise-ready production architecture using DataStax Astra DB. Astra DB is a 
 cloud-native, serverless vector database built on Apache Cassandra, providing 
 scalable cloud storage for vectorized applications.
+https://astra.datastax.com/
 
 1. SECURITY & CONNECTION: Validates and authenticates secure cloud connection 
    endpoints and tokens loaded safely from environmental configurations.
 2. CLOUD INGESTION: Instantiates `AstraDBVectorStore`. Passing raw text documents 
    automatically triggers a network call to the OpenAI API to calculate embeddings 
    before committing them over the wire to the cloud collection.
+   https://reference.langchain.com/python/langchain-astradb/vectorstores/AstraDBVectorStore
 3. ADVANCED METADATA FILTERING: Demonstrates database-level filtering using metadata 
    properties (e.g., scoping search spaces strictly to `{"source": "tweet"}`).
 4. ADVANCED RETRIEVAL SEARCH TYPES:
@@ -17,6 +19,7 @@ scalable cloud storage for vectorized applications.
      pruning away irrelevant matches that drop below a semantic confidence metric.
    - **MMR (Maximum Marginal Relevance)**: Minimizes redundancy in the retrieved output, 
      balancing strict query alignment with informational diversity.
+     https://reference.langchain.com/python/langchain-core/vectorstores/base/VectorStore/as_retriever
 ================================================================================
 """
 
@@ -37,12 +40,16 @@ load_dotenv()
 # 1. INITIAL PREPARATION: Configuration & Credentials
 # ==============================================================================
 
-# Ensure your .env file contains OPENAI_API_KEY
+# NOTE : Create an account on https://astra.datastax.com/ 
+
+
+# REFER to https://docs.datastax.com/en/astra-db-serverless/tutorials/rag-cli.html
+
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+# Astra DB Connection Details
 os.environ["ASTRA_DB_API_ENDPOINT"] = os.getenv("ASTRA_DB_API_ENDPOINT")
 os.environ["ASTRA_DB_APPLICATION_TOKEN"] = os.getenv("ASTRA_DB_APPLICATION_TOKEN")
 
-# Astra DB Connection Details
 
 # Initialize OpenAI Embeddings
 # text-embedding-3-small is cost-effective and high-performing
@@ -50,10 +57,13 @@ embeddings = OpenAIEmbeddings(model="text-embedding-3-small", dimensions=512)
 
 # Initialize the AstraDB Vector Store
 # Astra DB is a cloud-native, serverless vector database
+# https://reference.langchain.com/python/langchain-astradb/vectorstores/AstraDBVectorStore
+
+COLLECTION_NAME = "astra_vector_langchain"  # Name of the collection in Astra DB
 vector_store = AstraDBVectorStore(
     embedding=embeddings,
     api_endpoint=os.getenv("ASTRA_DB_API_ENDPOINT"),
-    collection_name="astra_vector_langchain",
+    collection_name=COLLECTION_NAME,
     token=os.getenv("ASTRA_DB_APPLICATION_TOKEN"),
     namespace=None,
 )
@@ -91,23 +101,35 @@ question1 = "Where can I find step-by-step web development guides and coding tut
 # filter allows you to narrow down search results based on metadata
 results = vector_store.similarity_search(
     question1,
-    k=1,
-    filter={"source": "tweet"},
+    k=2,
 )
+#NOTE try this to filter by source "tweet", "news" or "website"
+# results = vector_store.similarity_search(
+#     question1,
+#     k=1,
+#     filter={"source": "tweet"},
+# )
 print(f"Question: {question1}")
 for res in results:
     print(f'* Content: "{res.page_content}" | Source: {res.metadata["source"]}')
 
+# ======================================
 print("\n--- 2. Similarity Search with Scores similarity_search_with_score()---")
 # Returns a tuple of (Document, Score)
 results_with_score = vector_store.similarity_search_with_score(
     question1,
-    k=1,
-    filter={"source": "tweet"},
+    k=2
 )
+#NOTE try this to filter by source "tweet", "news" or "website"
+# results_with_score = vector_store.similarity_search_with_score(
+#     question1,
+#     k=1,
+#     filter={"source": "tweet"},
+# )
 print(f"Question: {question1}")
 for res, score in results_with_score:
     print(f'* [Score={score:.4f}] "{res.page_content}"')
+
 
 # ==============================================================================
 # 4. ADVANCED RETRIEVER STRATEGIES
@@ -120,6 +142,7 @@ question2 = "What major software engineering tasks or global tech topics are cur
 
 # Strategy A: Score Threshold
 # Only returns documents that meet a minimum similarity score
+# https://reference.langchain.com/python/langchain-core/vectorstores/base/VectorStore/as_retriever
 retriever_threshold = vector_store.as_retriever(
     search_type="similarity_score_threshold",
     search_kwargs={"k": 1, "score_threshold": 0.5},
@@ -130,14 +153,18 @@ threshold_res = retriever_threshold.invoke(question2, filter={"source": "news"})
 for doc in threshold_res:
     print(f'* Found: "{doc.page_content}"')
 
+# ======================================
 # Strategy B: MMR (Maximum Marginal Relevance)
 # MMR tries to find a balance between relevance and diversity in results
 retriever_mmr = vector_store.as_retriever(
     search_type="mmr",
-    search_kwargs={"k": 1},
+    search_kwargs={"k": 2},
 )
 
 print("\n--- 4. Retriever: MMR (Diversity Search) ---")
 mmr_res = retriever_mmr.invoke(question2, filter={"source": "news"})
 for doc in mmr_res:
     print(f'* Found: "{doc.page_content}"')
+
+
+# You can review the information below: Write requests , Read requests, Storage consumed , Data transfer , Vector write dimensions , Vector read dimensions    

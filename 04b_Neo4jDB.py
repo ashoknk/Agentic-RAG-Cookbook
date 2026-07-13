@@ -44,6 +44,7 @@ graph=Neo4jGraph(url=NEO4J_URI,username=NEO4J_USERNAME,password=NEO4J_PASSWORD)
 
 ## Dataset Movie
 movie_query="""
+
 LOAD CSV WITH HEADERS FROM
 'https://raw.githubusercontent.com/ashoknk/ashnaiku_dataset/main/movies_small.csv' as row
 
@@ -66,11 +67,10 @@ FOREACH (genre in split(row.genres, '|') |
 graph.query(movie_query)
 graph.refresh_schema()
 # print(graph.schema)
+
 groq_api_key=os.getenv("GROQ_API_KEY")
-
-
 llm=ChatGroq(groq_api_key=groq_api_key,model_name="openai/gpt-oss-20b")
-print(llm)
+# print(llm)
 
 
 # 1. Define a clear instruction template for the final answer phase

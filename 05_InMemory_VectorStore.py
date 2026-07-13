@@ -8,7 +8,7 @@ and retrieval dynamics without the added complexity of setting up external cloud
 - `InMemoryVectorStore`: Stores high-dimensional embedding vectors inside a simple 
   Python dictionary or NumPy array residing fully in volatile RAM. Data is 
   completely wiped upon program shutdown.
-- Native Engines (FAISS, Chroma, Pinecone): Built with optimized indexing 
+- Native Engines (FAISS, Chroma): Built with optimized indexing 
   architectures, supporting native disk persistence and massive scalability.
 
 1. INITIALIZATION: Setup OpenAI embedding configurations using `text-embedding` 
@@ -111,20 +111,25 @@ print("\n### =======Using similarity_search (k=2)========")
 res1 = vector_store.similarity_search(question1, k=2)
 print_formatted_results(question1, res1)
 
-print("------------------------------")
+print("-" * 50)
 
 res2 = vector_store.similarity_search(question2, k=2)
 print_formatted_results(question2, res2)
+print("-" * 50)
+
 
 res3 = vector_store.similarity_search(question3, k=2)
 print_formatted_results(question3, res3)
+print("-" * 50)
 
 res4 = vector_store.similarity_search(question4, k=2)
 print_formatted_results(question4, res4)
+print("-" * 50)
 
 # 2. vector_store.as_retriever() and .invoke()
 # This wraps the vector store in a Retriever interface, which is one of the core "Base Components" of LangChain.
 # What it returns: Technically it returns a list of documents, but it is wrapped in a Runnable object.
+
 
 print("### =======Using as_retriever (k=2)========")
 retriever = vector_store.as_retriever(search_kwargs={"k": 2})
@@ -132,7 +137,7 @@ retriever = vector_store.as_retriever(search_kwargs={"k": 2})
 retriever_results1 = retriever.invoke(question1)
 print_formatted_results(question1, retriever_results1)
 
-print("------------------------------")
+print("-" * 50)
 
 retriever_results2 = retriever.invoke(question2)
 print_formatted_results(question2, retriever_results2)
