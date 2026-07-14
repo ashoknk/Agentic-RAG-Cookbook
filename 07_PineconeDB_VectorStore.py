@@ -5,11 +5,14 @@ purpose-built, high-performance serverless vector database engine. It introduces
 explicit **Index Management** workflows to teach students how remote database indices 
 are provisioned and maintained at scale.
 
-1. ENVIRONMENT VALIDATION: Performs defensive checkups to protect against empty 
-   or mock API keys before consuming cloud compute resources.
+Pinecone is a fully managed, cloud-native vector database designed . It serves as the long-term memory layer for AI applications, allowing large language models (LLMs) to perform semantic search,  and retrieval-augmented generation (RAG) 
+without requiring you to manage infrastructure
+
+1. ENVIRONMENT VALIDATION: Performs defensive checkups and load API keys before consuming cloud compute resources.
 2. REMOTE INDEX PROVISIONING: Uses the native Pinecone client to dynamically query the 
    cloud environment. If the targeted index doesn't exist, it configures and 
    spins up a new serverless vector cluster matching precise embedding dimensions.
+   https://www.pinecone.io/ Create an account 
 3. EMBEDDING PIPELINE: Pairs the Pinecone index with an OpenAI 1024-dimension 
    embedding model via `PineconeVectorStore` to orchestrate automatic cloud ingestion.
 4. RELEVANCE SEARCH TESTING: Demonstrates deep database-level metadata filtering 
@@ -68,6 +71,8 @@ pc = Pinecone(api_key=PINECONE_API_KEY)
 # ==============================================================================
 
 # Check for existing index using modern list_indexes().names()
+# ServerlessSpec is a class in the Pinecone Python SDK. It defines the deployment specifications for creating a fully managed, 
+# auto-scaling serverless vector index, requiring you to configure only the cloud provider and region.
 if INDEX_NAME not in pc.list_indexes().names():
     print(f"Creating new index: {INDEX_NAME}...")
     pc.create_index(
@@ -80,8 +85,10 @@ else:
     print(f"Index '{INDEX_NAME}' already exists. Connecting...")
 
 # Connect to the index and initialize the VectorStore
+# https://reference.langchain.com/python/langchain-pinecone/vectorstores/PineconeVectorStore
 index = pc.Index(INDEX_NAME)
 vector_store = PineconeVectorStore(index=index, embedding=embeddings)
+
 
 # ==============================================================================
 # 3. DATA INGESTION: Documents Creation
@@ -106,6 +113,7 @@ documents = [
 vector_store.add_documents(documents=documents)
 print(f"✅ Successfully added {len(documents)} documents to Pinecone.")
 
+
 # ==============================================================================
 # 4. RETRIEVAL: Similarity Search & Filtering
 # ==============================================================================
@@ -117,6 +125,11 @@ question1 = "Where can I find step-by-step web development guides and coding tut
 
 results = vector_store.similarity_search(
     question1,
+    k=2
+)
+
+results = vector_store.similarity_search(
+    question1,
     k=1,
     filter={"source": "tweet"} # Metadata filtering happens at the DB level
 )
@@ -125,17 +138,24 @@ for doc in results:
     print(f"* {doc.page_content} [{doc.metadata}]")
 
 
-print("\n--- 2.Similarity Search with Scores (News only) similarity_search_with_score() ---")
-# question2 = "Was there a robbery?"
+# ========================================
+# print("\n--- 2.Similarity Search with Scores (News only) similarity_search_with_score() ---")
+# # question2 = "Was there a robbery?"
 question2 = "What major software engineering tasks or global tech topics are currently being discussed?"
 results_with_score = vector_store.similarity_search_with_score(
     question2, 
-    k=1, 
-    filter={"source": "news"}
+    k=2
 )
+# results_with_score = vector_store.similarity_search_with_score(
+#     question2, 
+#     k=1, 
+#     filter={"source": "news"}
+# )
+
 print(f"Question: {question2}")
 for doc, score in results_with_score:
     print(f"* [Score={score:.4f}] {doc.page_content}")
+
 
 # ==============================================================================
 # 5. RETRIEVER: LangChain Runnable Interface
@@ -156,13 +176,13 @@ print(f"Question: {question3}")
 for doc in retrieved_docs:
     print(f"Found: {doc.page_content}")
 
-
+# ========================================
 
 # Strategy B: MMR (Maximum Marginal Relevance)
 # MMR tries to find a balance between relevance and diversity in results
 retriever_mmr = vector_store.as_retriever(
     search_type="mmr",
-    search_kwargs={"k": 1},
+    search_kwargs={"k": 4},
 )
 
 print("\n--- 4. Retriever: MMR (Diversity Search) ---")

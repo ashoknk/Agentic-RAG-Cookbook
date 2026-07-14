@@ -1,8 +1,8 @@
 """
 ================================================================================
 This script transitions the codebase from volatile local RAM to a persistent, 
-enterprise-ready production architecture using DataStax Astra DB. Astra DB is a 
-cloud-native, serverless vector database built on Apache Cassandra, providing 
+enterprise-ready production architecture using DataStax Astra DB. 
+Astra DB is a cloud-native, serverless vector database built on Apache Cassandra, providing 
 scalable cloud storage for vectorized applications.
 https://astra.datastax.com/
 
@@ -90,12 +90,14 @@ documents = [
 vector_store.add_documents(documents=documents)
 print(f"✅ Successfully added {len(documents)} documents to Astra DB.")
 
+
+
 # ==============================================================================
 # 3. DIRECT SEARCH: Similarity & Filtering
 # ==============================================================================
 
 print("\n--- 1. Similarity Search (Filtered by Source: Tweet) similarity_search() ---")
-# Matches Doc 9 (CSS Grid/Flexbox guide) and Doc 11 (Next.js deployment tutorial)
+# # Matches Doc 9 (CSS Grid/Flexbox guide) and Doc 11 (Next.js deployment tutorial)
 question1 = "Where can I find step-by-step web development guides and coding tutorials?"
 
 # filter allows you to narrow down search results based on metadata
@@ -103,17 +105,20 @@ results = vector_store.similarity_search(
     question1,
     k=2,
 )
-#NOTE try this to filter by source "tweet", "news" or "website"
-# results = vector_store.similarity_search(
-#     question1,
-#     k=1,
-#     filter={"source": "tweet"},
-# )
+# NOTE try this to filter by source "tweet", "news" or "website"
+results = vector_store.similarity_search(
+    question1,
+    k=1,
+    filter={"source": "tweet"},
+)
 print(f"Question: {question1}")
 for res in results:
     print(f'* Content: "{res.page_content}" | Source: {res.metadata["source"]}')
 
-# ======================================
+
+
+
+# # ======================================
 print("\n--- 2. Similarity Search with Scores similarity_search_with_score()---")
 # Returns a tuple of (Document, Score)
 results_with_score = vector_store.similarity_search_with_score(
@@ -153,16 +158,17 @@ threshold_res = retriever_threshold.invoke(question2, filter={"source": "news"})
 for doc in threshold_res:
     print(f'* Found: "{doc.page_content}"')
 
+
 # ======================================
 # Strategy B: MMR (Maximum Marginal Relevance)
 # MMR tries to find a balance between relevance and diversity in results
 retriever_mmr = vector_store.as_retriever(
     search_type="mmr",
-    search_kwargs={"k": 2},
+    search_kwargs={"k": 4},
 )
 
 print("\n--- 4. Retriever: MMR (Diversity Search) ---")
-mmr_res = retriever_mmr.invoke(question2, filter={"source": "news"})
+mmr_res = retriever_mmr.invoke(question2)
 for doc in mmr_res:
     print(f'* Found: "{doc.page_content}"')
 

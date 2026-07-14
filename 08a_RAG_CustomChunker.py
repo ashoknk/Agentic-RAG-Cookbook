@@ -51,8 +51,11 @@ logging.getLogger("transformers").setLevel(logging.ERROR)
 os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
 
 # Constants
+# uv add sentence-transformers
+# https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2
 MODEL_NAME_SENTENCE_TRANSFORMER = "all-MiniLM-L6-v2" 
 MODEL_NAME_CHAT = "groq:llama-3.1-8b-instant"
+MODEL_EMBEDDING= "text-embedding-3-small"
 
 # --- Custom Threshold Semantic Chunker ---
 class ThresholdSemanticChunker:
@@ -64,7 +67,7 @@ class ThresholdSemanticChunker:
         self.model = SentenceTransformer(model_name)
         self.threshold = threshold 
 
-    def split(self, text: str):
+    def _split(self, text: str):
         # --- Step 1: Split raw text into individual sentences ---
         sentences = [s.strip() for s in text.split('\n') if s.strip()]
         if not sentences: return []
@@ -93,7 +96,7 @@ class ThresholdSemanticChunker:
     def split_documents(self, docs):
         result = []
         for doc in docs:
-            for chunk in self.split(doc.page_content):
+            for chunk in self._split(doc.page_content):
                 result.append(Document(page_content=chunk, metadata=doc.metadata))
         return result
 
@@ -125,7 +128,7 @@ for idx, chunk in enumerate(chunks):
 
 # --- Vector Store & Retrieval ---
 print("\nInitializing FAISS Vector Store...")
-embedding_model = OpenAIEmbeddings(model="text-embedding-3-small", dimensions=512)
+embedding_model = OpenAIEmbeddings(model=MODEL_EMBEDDING, dimensions=512)
 vectorstore = FAISS.from_documents(chunks, embedding_model)
 retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 
@@ -143,6 +146,8 @@ prompt = PromptTemplate.from_template(template)
 llm = init_chat_model(model=MODEL_NAME_CHAT, temperature=0.4)
 
 # --- LCEL Chain ---
+# https://reference.langchain.com/javascript/langchain-core/runnables/RunnableMap
+# https://reference.langchain.com/python/langchain-core/output_parsers/string/StrOutputParser
 rag_chain = (
     RunnableMap({
         "context": lambda x: retriever.invoke(x["question"]),
