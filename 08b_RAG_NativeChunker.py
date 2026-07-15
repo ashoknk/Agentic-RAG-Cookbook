@@ -30,6 +30,8 @@ from langchain_core.runnables import RunnableMap
 
 # Vector Store & Native Chunker
 from langchain_community.vectorstores import FAISS
+#  DeprecationWarning: `langchain-experimental` is being sunset and is no longer actively maintained.
+#  See https://github.com/langchain-ai/langchain-experimental/issues/87 for details.
 from langchain_experimental.text_splitter import SemanticChunker
 
 # --- Preparation & Logging ---
@@ -56,7 +58,8 @@ doc = Document(page_content=text)
 
 # --- Chunking with LangChain Native Chunker ---
 embedding_model = OpenAIEmbeddings(model="text-embedding-3-small", dimensions=512)
-# native_chunker = SemanticChunker(embedding_model)
+# the standard deviation breakpoint method splits your text whenever the semantic distance between 
+# consecutive sentences exceeds
 native_chunker = SemanticChunker(
     embedding_model, 
     breakpoint_threshold_type="standard_deviation",
@@ -66,7 +69,6 @@ chunks = native_chunker.split_documents([doc])
 
 # --- Vector Store & Retrieval ---
 vectorstore = FAISS.from_documents(chunks, embedding_model)
-# retriever = vectorstore.as_retriever()
 retriever = vectorstore.as_retriever(search_kwargs={"k": 1})
 
 # --- Prompt & LLM Setup ---
@@ -77,10 +79,18 @@ Context:
 
 Question: {question}
 Answer:"""
+
+# https://reference.langchain.com/python/langchain-core/prompts/prompt/PromptTemplate
+# https://reference.langchain.com/python/langchain-core/prompts/prompt/PromptTemplate/from_template
 prompt = PromptTemplate.from_template(template)
 llm = init_chat_model(model=MODEL_NAME_CHAT, temperature=0.4)
 
 # --- LCEL Chain ---
+# RunnableMap
+# A runnable that runs a mapping of runnables in parallel, and returns a mapping of their outputs.
+# StrOutputParser
+# Extract text content from model outputs as a string.
+
 rag_chain = (
     RunnableMap({
         "context": lambda x: retriever.invoke(x["question"]),

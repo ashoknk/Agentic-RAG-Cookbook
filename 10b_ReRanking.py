@@ -1,14 +1,14 @@
 """
-10_ReRanking.py: Initializes the re-ranker LLM with default settings. The prompt template casually asks the LLM to provide a comma-separated list of ranked indices (e.g., 2,1,3,0,...). It lacks formatting enforcement, leaving it vulnerable to LLM conversational fluff or explanations.
+10a_ReRanking.py: Initializes the re-ranker LLM with default settings. The prompt template casually asks the LLM to provide a comma-separated list of ranked indices (e.g., 2,1,3,0,...). It lacks formatting enforcement, leaving it vulnerable to LLM conversational fluff or explanations.
 10b_ReRanking.py: Enforces strict adherence by explicitly setting the model's temperature=0.0. The prompt template is re-engineered with severe structural guardrails: it instructs the LLM to output a JSON-like array wrapper ([index, index, index]) and explicitly bans conversational intros, summaries, or explanatory tokens.
 
-10_ReRanking.py splits the string directly by commas:
+10a_ReRanking.py splits the string directly by commas:
     indices = [int(x.strip()) - 1 for x in ranking_response.split(",") if x.strip().isdigit()]  
 10b_ReRanking.py adds an intermediate text-cleaning layer to strip away the brackets before processing the comma breakdown:
     cleaned_response = ranking_response.replace("[", "").replace("]", "")
     indices = [int(x.strip()) - 1 for x in cleaned_response.split(",") if x.strip().isdigit()]
 
-10_ReRanking.py is written as a simple, procedural top-to-bottom script execution loop. It runs exactly one hardcoded evaluation question against the pipeline during execution.
+10a_ReRanking.py is written as a simple, procedural top-to-bottom script execution loop. It runs exactly one hardcoded evaluation question against the pipeline during execution.
 10b_ReRanking.py abstracts the entire two-stage RAG mechanism into a reusable python function framework: run_reranking_pipeline(test_title, query_text). This allows it to easily execute an automated test suite under an if __name__ == "__main__": block, sequentially evaluating three completely different technical multi-hop cybersecurity scenarios.
 """
 import os
@@ -67,22 +67,6 @@ retriever = vectorstore.as_retriever(search_kwargs={"k": 8})
 # ==============================================================================
 MODEL_NAME_CHAT = "groq:llama-3.1-8b-instant"
 llm = init_chat_model(MODEL_NAME_CHAT, temperature=0.0) # Low temperature for strict adherence
-
-# FIX: Added strict formatting guardrails to prevent conversational rambling
-# ranking_template = """You are an elite information retrieval system. Your sole task is to re-score and re-order the given documents based on their semantic relevance to the user's question.
-
-# User Question: "{question}"
-
-# Documents to Rank:
-# {documents}
-
-# CRITICAL INSTRUCTIONS:
-# 1. Re-order the document indices from most relevant to least relevant.
-# 2. Output ONLY a comma-separated list of the numbers representing the rank order.
-# 3. Absolutely NO explanations, NO conversational intros, and NO text blocks.
-
-# Correct Output Example: 3,1,4,2,0
-# Your Output:"""
 
 ranking_template = """You are a precise ranking engine. Your job is to re-order the given documents based on how well they answer the user's question.
 

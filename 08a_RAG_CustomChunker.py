@@ -117,6 +117,7 @@ THRESHOLD = 0.30
 chunker = ThresholdSemanticChunker(threshold=THRESHOLD)
 chunks = chunker.split_documents([doc])
 
+
 # ==============================================================================
 # 4. OUTPUT CHUNKING RESULTS (Before Vector Store / LLM RAG)
 # ==============================================================================
@@ -125,6 +126,7 @@ for idx, chunk in enumerate(chunks):
     print(f"\nChunk {idx+1}:")
     print(f"---")
     print(f"{chunk.page_content}") # Accessing page_content since split_documents returns wrapped Document objects
+
 
 # --- Vector Store & Retrieval ---
 print("\nInitializing FAISS Vector Store...")
@@ -141,9 +143,16 @@ Context:
 
 Question: {question}
 Answer:"""
-
+# A prompt template consists of a string template. It accepts a set of parameters from the user that can be used to generate a prompt for a language model.
+# from_template - Load a prompt template from a template.
 prompt = PromptTemplate.from_template(template)
+# Initialize a chat model from any supported provider using a unified interface.
 llm = init_chat_model(model=MODEL_NAME_CHAT, temperature=0.4)
+
+# The reason lambda is used in this specific chain boils down to one key difference: 
+# the shape of the input data being passed into the chain.
+# script passes a dictionary ({"question": "..."}), 
+# the input flowing into the start of the chain is x = {"question": "..."}.
 
 # --- LCEL Chain ---
 # https://reference.langchain.com/javascript/langchain-core/runnables/RunnableMap

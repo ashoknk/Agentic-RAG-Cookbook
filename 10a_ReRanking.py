@@ -99,12 +99,16 @@ Output format: comma-separated document indices (e.g., 2,1,3,0,...)
 """
 ranking_prompt = PromptTemplate.from_template(ranking_template)
 
+# StrOutputParser - Extract text content from model outputs as a string.
+# https://reference.langchain.com/python/langchain-core/output_parsers/string/StrOutputParser
 # Create the ranking chain
 ranking_chain = ranking_prompt | llm | StrOutputParser()
 
 # Format retrieved documents for the LLM prompt
 doc_lines = [f"{i+1}. {doc.page_content}" for i, doc in enumerate(retrieved_docs)]
 formatted_docs_str = "\n".join(doc_lines)
+
+# print(f"===formatted_docs_str===: {formatted_docs_str}") #NOTE Just for testing 
 
 # Execute re-ranking
 ranking_response = ranking_chain.invoke({
@@ -115,6 +119,7 @@ ranking_response = ranking_chain.invoke({
 print(f"🔍 Query: {query1}")
 print(f"Re-ranking response: {ranking_response}")
 print("====================================")
+
 # ==============================================================================
 # 5. PARSING & FINAL OUTPUT
 # ==============================================================================

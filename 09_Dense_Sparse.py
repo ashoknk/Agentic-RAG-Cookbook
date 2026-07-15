@@ -1,16 +1,18 @@
 """
 ================================================================================
-This script introduces the robust industry architecture known as **Hybrid RAG** or **Ensemble Retrieval**. By blending semantic understanding with structural syntax 
-matching, this design addresses the retrieval blind spots found in isolated 
+This script introduces the robust industry architecture known as 
+**Hybrid RAG** or **Ensemble Retrieval**.
+By blending semantic understanding with structural syntax matching, 
+this design addresses the retrieval blind spots found in isolated 
 dense or sparse strategies.
 
 THE COMPONENT TRIAD:
 - **Component A: Dense Retriever (The Smart Assistant)**: 
-    Employs a local HuggingFace embedding model (`all-MiniLM-L6-v2`) and FAISS to decode conceptual meaning and 
-  synonyms. Excellent for abstract, intent-driven searches.
+    Employs a local HuggingFace embedding model (`all-MiniLM-L6-v2`) and FAISS to decode 
+    =conceptual meaning and synonyms=. Excellent for abstract, intent-driven searches.
 - **Component B: Sparse Retriever (The Keyword Filter)**: 
-    Leverages a traditional BM25 algorithm to look for exact keyword overlapping. Crucial for capturing 
-  hyper-specific technical acronyms, names, or short numeric code strings.
+    Leverages a traditional BM25 algorithm to look for =exact keyword= overlapping. Crucial for capturing 
+    hyper-specific technical acronyms, names, or short numeric code strings.
 - **Component C: Ensemble Layer (The Hybrid Orchestrator)**: 
     Fuses both retrievers together using a custom weighting spectrum (e.g., 70% Dense trust vs. 30% Sparse trust).
 
@@ -42,6 +44,13 @@ from langchain_classic.chains.combine_documents import create_stuff_documents_ch
 
 from langchain_classic.chains.retrieval import create_retrieval_chain
 
+# https://reference.langchain.com/python/langchain-huggingface/embeddings/huggingface/HuggingFaceEmbeddings
+# https://reference.langchain.com/python/langchain-community/retrievers/bm25/BM25Retriever
+# https://reference.langchain.com/python/langchain-classic/retrievers/ensemble/EnsembleRetriever
+
+# https://reference.langchain.com/python/langchain-classic/chains/combine_documents/stuff/create_stuff_documents_chain
+# https://reference.langchain.com/python/langchain-classic/chains/retrieval/create_retrieval_chain
+
 # ==============================================================================
 # 1. INITIAL PREPARATION
 # ==============================================================================
@@ -67,6 +76,8 @@ docs = [
 
 # --- Component A: Dense Retriever (Semantic Similarity) Like a The Smart Assistant---
 # Uses embeddings to understand the "meaning" of the query
+# Employs a local HuggingFace embedding model (`all-MiniLM-L6-v2`) and 
+# FAISS to decode =conceptual meaning and synonyms=. Excellent for abstract, intent-driven searches.
 MODEL_NAME_EMBEDDING = "all-MiniLM-L6-v2"
 embedding_model = HuggingFaceEmbeddings(model_name=MODEL_NAME_EMBEDDING)
 dense_vectorstore = FAISS.from_documents(docs, embedding_model)
@@ -110,8 +121,15 @@ Context: {context}
 Question: {input}
 """)
 
-# Create the chains
+### Create a document chain
+# create_stuff_documents_chain creates a chain that "stuffs" (inserts) all retrieved documents 
+# into a single prompt and sends it to the LLM. 
+# It's called "stuff" because it literally stuffs all the documents into the context window at once.
+
 document_chain = create_stuff_documents_chain(llm=llm, prompt=prompt)
+### Create The Final RAG Chain
+# create_retrieval_chain is a function that combines a retriever (which fetches relevant documents) 
+# with a document chain (which processes those documents with an LLM) to create a complete RAG pipeline.
 rag_chain = create_retrieval_chain(
     retriever=hybrid_retriever, 
     combine_docs_chain=document_chain
@@ -159,6 +177,7 @@ run_hybrid_test(
     "TEST 1: Dense Advantage (Synonyms & Conceptual Meaning)",
     "Tell me about the largest marine organism system and its fading colors."
 )
+
 
 # ------------------------------------------------------------------------------
 # TEST 2: The Sparse Advantage (Exact Keyword Match)
