@@ -1,14 +1,19 @@
 """
 ================================================================================
 MMR (Maximal Marginal Relevance) 
-This script introduces **Maximal Marginal Relevance (MMR)**, an advanced, 
-diversity-aware retrieval algorithm. While normal vector search exclusively 
-grabs the closest documents in vector space (which often leads to repetitive text), 
-MMR mathematically penalizes redundancy. It selects document chunks that are 
-highly relevant to the user query yet distinctly different from one another, 
+This script introduces **Maximal Marginal Relevance (MMR)**, an advanced, diversity-aware retrieval algorithm. 
+While normal vector search exclusively grabs the closest documents in vector space (which often leads to repetitive text), 
+MMR mathematically penalizes redundancy.
+It selects document chunks that are highly relevant to the user query yet distinctly different from one another, 
 ensuring the downstream LLM receives a comprehensive, well-rounded overview.
 
-Imagine you ask a friend for book recommendations about space, and instead of giving you three different books on astronauts, they give you one on astronauts, one on planets, and one on alien life. That is exactly what **MMR** does for your AI search engine. While standard search only looks for the closest matching answers, MMR actively penalizes repetitive information. It forces the database to select chunks that are highly relevant to your question, but completely different from one another in text content. This ensures your LLM gets a well-rounded, diverse snapshot of information instead of reading the exact same fact repeated three times.
+Imagine you ask a friend for book recommendations about space, and instead of giving you three different books on astronauts, 
+they give you one on astronauts, one on planets, and one on alien life.
+That is exactly what **MMR** does for your AI search engine. While standard search only looks for the closest matching answers,
+MMR actively penalizes repetitive information. 
+It forces the database to select chunks that are highly relevant to your question, 
+but completely different from one another in text content. This ensures your LLM gets a well-rounded,
+diverse snapshot of information instead of reading the exact same fact repeated three times.
 
 
 1. TEXT INGESTION: Loads a multi-topic cybersecurity reference dataset and splits it into fine-grained character segments.
@@ -59,7 +64,6 @@ os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
 # ==============================================================================
 # 2. DATA INGESTION & CHUNKING
 # ==============================================================================
-# TODO change question to cybersecurity_data if needed
 FILE_NAME = "cybersecurity_data/cybersecurity_dataset.txt"
 # Step 1: Load and split the document into smaller segments
 try:
@@ -76,7 +80,8 @@ except Exception as e:
 # ==============================================================================
 # 3. VECTOR STORE & MMR RETRIEVER SETUP
 # ==============================================================================
-
+# https://reference.langchain.com/python/langchain/chat_models/base/init_chat_model
+# https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2
 MODEL_EMBEDDING = "all-MiniLM-L6-v2"
 # Step 2: Initialize embeddings via HuggingFace
 embedding_model = HuggingFaceEmbeddings(model_name=MODEL_EMBEDDING)
@@ -95,7 +100,9 @@ retriever = vectorstore.as_retriever(
     search_kwargs={"k": 3}
 )
 
-# When you set search_type="mmr", LangChain's native vector store class (like FAISS or Chroma) automatically catches that keyword parameter. Instead of calling its standard Euclidean distance or Cosine similarity method, the vector store shifts its internal mathematical routing to execute its built-in MMR diversification function.
+# When you set search_type="mmr", LangChain's native vector store class (like FAISS or Chroma) automatically catches that keyword parameter. 
+# Instead of calling its standard Euclidean distance or Cosine similarity method, 
+# the vector store shifts its internal mathematical routing to execute its built-in MMR diversification function.
 
 # ==============================================================================
 # 4. RAG PIPELINE CONSTRUCTION
@@ -163,6 +170,6 @@ query3 = {
 }
 
 # 2. Run them using the reusable function
-run_and_display_query(rag_chain, query1)
-run_and_display_query(rag_chain, query2)
+# run_and_display_query(rag_chain, query1)
+# run_and_display_query(rag_chain, query2)
 run_and_display_query(rag_chain, query3)

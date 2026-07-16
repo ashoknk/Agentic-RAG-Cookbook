@@ -2,7 +2,7 @@
 """
 ================================================================================
 This script showcases **Query Expansion**
-🎯 What is Query Enhancement?
+🎯 What is Query Expansion/Enhancement?
 Query enhancement (Query Expansion Techniques) refers to techniques used to improve or reformulate the user query to retrieve better, more relevant documents from the knowledge base. 
 It is especially useful when:
 - The original query is short, ambiguous, or under-specified.
@@ -58,6 +58,7 @@ os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
 load_dotenv()
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
 os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
+# https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 
 # ==============================================================================
@@ -74,7 +75,9 @@ try:
     chunks = splitter.split_documents(raw_docs)
 
     # Step 2: Initialize Vector Store with HuggingFace Embeddings
+    # https://reference.langchain.com/python/langchain-huggingface/embeddings/huggingface/HuggingFaceEmbeddings
     embedding_model = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL_NAME)
+    # https://sj-langchain.readthedocs.io/en/latest/vectorstores/langchain.vectorstores.faiss.FAISS.html
     vectorstore = FAISS.from_documents(chunks, embedding_model)
 
     # Step 3: Setup MMR Retriever (Diversity-aware retrieval)
