@@ -9,8 +9,11 @@ LLM to generate hypothetical text structured like a standard, high-quality searc
 1. INGESTION ENGINE: Splices a multi-paragraph cybersecurity dataset into 
    granular 300-character segments.
 2. WRAPPED HYDE INTERFACE: Instantiates `HypotheticalDocumentEmbedder.from_llm()`. 
-   This seamlessly binds your basic HuggingFace embedding calculations and your Groq 
-   LLM into a single, unified `hyde_embedding_function` object.
+   This seamlessly binds your 
+    a.basic HuggingFace embedding calculations and 
+    b. your Groq LLM 
+        into a single, unified `hyde_embedding_function` object.
+   Uses a pre-configured default template built into LangChain called "web_search".
 3. SILENT QUERY ROUTING: The new object wraps around the vector store ingestion. 
    When `similarity_search()` is called, the class intercepts your short text query, 
    silently queries the LLM for a web-styled response, embeds it, and runs the 
@@ -50,7 +53,6 @@ os.environ["HF_TOKEN"]=os.getenv("HF_TOKEN")
 os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
 llm = init_chat_model("groq:llama-3.1-8b-instant")
 
-# TODO change question to cybersecurity_data if needed
 FILE_NAME = "cybersecurity_data/cybersecurity_dataset.txt"
 # Step 1: Load and split documents
 loader = TextLoader(FILE_NAME)
@@ -68,19 +70,26 @@ base_embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
 # your LLM into a singular object called hyde_embedding_function
 
 OUTPUT_DIR = "output/langchain_web"
+# prompt_key="web_search" - Write a hypothetical document in the style of a high-quality web search result 
+# It doesn't perform a "web search."
+#  HypotheticalDocumentEmbedder class is wrapped directly around your database.
 hyde_embedding_function = HypotheticalDocumentEmbedder.from_llm(
     llm=llm,
     base_embeddings=base_embeddings,
-    prompt_key="web_search"
+    prompt_key="web_search" # <--- Built-in LangChain preset
 )
 
 # Step 4: Store chunks into Chroma DB using HyDE embeddings
-print("📦 Ingesting documents into standard Web Search database...")
+# When you load documents into the database with Chroma.from_documents(..., embedding=hyde_embedding_function), 
+# HyDE runs on every single document chunk as it is saved! The LLM generates a hypothetical question for every chunk 
+# of your text file, and embeds those answer.
+print("📦 Ingesting documents into  database...")
 vectorstore = Chroma.from_documents(
     documents=chunks,
     embedding=hyde_embedding_function,
     persist_directory=OUTPUT_DIR
 )
+
 
 # Step 5: Construct the RAG Answer Generation Chain
 rag_prompt = PromptTemplate.from_template("""
@@ -91,6 +100,8 @@ Context:
 
 Question: {input}
 """)
+# Create a chain for passing a list of Documents to a model.
+# https://reference.langchain.com/python/langchain-classic/chains/combine_documents/stuff/create_stuff_documents_chain
 rag_chain = create_stuff_documents_chain(llm=llm, prompt=rag_prompt)
 
 # Step 6: Define full pipeline search and synthesis loop
@@ -100,7 +111,10 @@ rag_chain = create_stuff_documents_chain(llm=llm, prompt=rag_prompt)
 
 def hyde_rag_pipeline(query):
     # Pass query; HyDE silently maps query -> hypothetical text -> vector match
-    matched_docs = vectorstore.similarity_search(query, k=4)
+    # When similarity_search(query) is called, the query string is intercepted by the underlying 
+    # HypotheticalDocumentEmbedder class. It silently sends that query to the LLM behind the scenes using 
+    # the defined prompt (prompt_key="web_search" or your custom_prompt) to generate the hidden hypothetical text.
+    matched_docs = vectorstore.similarity_search(query, k=2)
     
     print("\n📚 [Web Search Mode] Retrieved Context Chunks:")
     for i, doc in enumerate(matched_docs):
@@ -113,6 +127,6 @@ def hyde_rag_pipeline(query):
     return response
 
 # Step 7: Run execution
-query = "What memory modules does LangChain provide?"
+query = "What OWASP API Top 10 represent in App Security and how are they applied?"
 answer = hyde_rag_pipeline(query)
 print("✅ Final Answer (Web Search):\n", answer)

@@ -13,6 +13,12 @@ and vocabulary of the underlying data files.
 2. CUSTOM RETRIEVAL ENGINEERING: Constructs a tailored `PromptTemplate`. This is injected 
    into `HypotheticalDocumentEmbedder` via the `custom_prompt` parameter, overriding 
    the default web search text instructions.
+   Bypasses built-in presets by injecting a manually defined prompt template using the custom_prompt parameter.
+
+    How it works: 
+        This is used when you need to steer the LLM's imagination to match highly technical jargon, 
+        specific document layouts, or domain-specific language (e.g., medical, legal, or deep tech).
+
 3. CHROMA DISK INGESTION: Builds a dedicated database directory (`output/langchain_custom`) 
    where retrieval vectors are registered and sorted via the engineered prompt.
 4. PIPELINE EXECUTION: Automatically expands complex technical questions into 
@@ -59,8 +65,7 @@ os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
 llm = init_chat_model("groq:llama-3.1-8b-instant")
 
 # Step 1: Load and split documents
-# TODO change question to cybersecurity_data if needed
-FILE_NAME = "cybersecurity_data/cybersecurity_dataset.txt.txt"
+FILE_NAME = "cybersecurity_data/cybersecurity_dataset.txt"
 loader = TextLoader(FILE_NAME)
 docs = loader.load()
 splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=50)
@@ -76,10 +81,13 @@ custom_prompt = PromptTemplate.from_template(
 )
 
 # Step 4: Build Custom HyDE Embedder wrapping your engineered prompt
+# How it works: 
+#         This is used when you need to steer the LLM's imagination to match highly technical jargon, 
+#         specific document layouts, or domain-specific language (e.g., medical, legal, or deep tech).
 custom_hyde_embedding_function = HypotheticalDocumentEmbedder.from_llm(
     llm=llm,
     base_embeddings=base_embeddings,
-    custom_prompt=custom_prompt
+    custom_prompt=custom_prompt # <--- Custom-crafted template
 )
 
 # Step 5: Store chunks into a separate database on disk 
@@ -89,6 +97,7 @@ custom_vectorstore = Chroma.from_documents(
     embedding=custom_hyde_embedding_function,
     persist_directory="output/langchain_custom"
 )
+
 
 # --- ADDED: Step 5b: Construct the RAG Answer Generation Chain ---
 # Identical to the prompt abstraction in your web_search variant
@@ -106,7 +115,12 @@ rag_chain = create_stuff_documents_chain(llm=llm, prompt=rag_prompt)
 # --- ADDED: Step 6: Define Full Pipeline Search and Synthesis Loop ---
 def custom_hyde_rag_pipeline(query):
     # Pass query; Custom HyDE maps query -> custom hypothetical text -> vector match
-    matched_docs = custom_vectorstore.similarity_search(query, k=4)
+    # Pass query; HyDE silently maps query -> hypothetical text -> vector match
+    # When similarity_search(query) is called, the query string is intercepted by the underlying 
+    # HypotheticalDocumentEmbedder class. It silently sends that query to the LLM behind the scenes using 
+    # the defined prompt (prompt_key="your custom_prompt") to generate the hidden hypothetical text.
+
+    matched_docs = custom_vectorstore.similarity_search(query, k=2)
     
     print("\n🎯 [Custom Prompt Mode] Retrieved Context Chunks:")
     print("-" * 50)

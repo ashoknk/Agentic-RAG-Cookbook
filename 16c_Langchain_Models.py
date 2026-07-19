@@ -3,7 +3,9 @@
 An instructional guide demonstrating provider interoperability via LangChain. 
 This script highlights how to interact with different flagship LLM backends 
 (OpenAI, Google Gemini, and Meta Llama via Groq) using two alternative integration 
-patterns: the universal initialization wrapper and direct class factories.
+patterns: 
+  - the universal initialization wrapper and 
+  - direct class factories.
 
 THE TWO STYLES OF INITIALIZATION:
 ---------------------------------
@@ -12,7 +14,6 @@ THE TWO STYLES OF INITIALIZATION:
   automatically maps parameters and handles model loading without structural code changes.
 - **The Direct Class Pattern**: Uses explicit class models (`ChatOpenAI`, `ChatGroq`). 
   Ideal for provider-specific edge configurations, but requires strict library imports.
-
 
 1. CREDENTIAL LOADING: Registers API access parameters across separate provider accounts.
 2. INTERACTIVE DEMO ITERATION: Sequentially instantiates, runs, and monitors text 
@@ -31,26 +32,25 @@ from langchain_groq import ChatGroq
 # 1. INITIAL PREPARATION: Environment & Keys Setup
 # ==============================================================================
 load_dotenv()
+# https://platform.openai.com/home
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+# https://support.google.com/googleapi/answer/6158862?hl=en
 os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY")
+# https://console.groq.com/docs/quickstart
 os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
-
-if "GEMINI_API_KEY" in os.environ:
-    del os.environ["GEMINI_API_KEY"]
     
 question1 = "How does a microwave cook food so fast? "
 question2 = "Why do mirrors reflect our image?"
 question3 = "How does a touch screen on a phone work?"
-append = " Please explain in 3 sentences."
+append = " Please explain in 1 short sentence."
 
 # ==============================================================================
 # 2. CHATOPENAI MODEL INTEGRATION
 # ==============================================================================
-# NOTE: The model `openai:gpt-4o-mini` does not exist or you do not have access to it
 print("--- 1. Initializing OpenAI Model ---")
 # Universal initialization pattern
-# OPENAI_MODEL = "openai:gpt-5.4-mini"
-OPENAI_MODEL = "gpt-5.4-mini"
+OPENAI_MODEL = "gpt-4o-mini"
+# OPENAI_MODEL = "gpt-5.4-mini"
 model = init_chat_model(OPENAI_MODEL)
 response = model.invoke(question1 + append)
 print(f"Universal Pattern Answer:\n{response.content}\n")
@@ -60,6 +60,7 @@ model_openai = ChatOpenAI(model=OPENAI_MODEL)
 response_openai = model_openai.invoke(question1 + append)
 print(f"Direct Class Answer:\n{response_openai.content}\n")
 print("-" * 60)
+
 
 # ==============================================================================
 # 3. GOOGLE GEMINI MODEL INTEGRATION
@@ -77,6 +78,7 @@ model_google_direct = ChatGoogleGenerativeAI(model=GOOGLE_MODEL)
 response_google_direct = model_google_direct.invoke(question2 + append)
 print(f"Direct Class Answer:\n{response_google_direct.content}\n")
 print("-" * 60)
+
 
 # ==============================================================================
 # 4. GROQ MODEL INTEGRATION

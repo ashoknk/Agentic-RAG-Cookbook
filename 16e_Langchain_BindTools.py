@@ -6,15 +6,23 @@ Instead of relying on high-level wrappers like `create_agent`, it uncovers how
 to explicitly bind tool definitions to a raw chat model and manually coordinate 
 the tool execution loop.
 
+Without those two .append() statements, the LLM would lose all context of what tool it asked to run and 
+what data was retrieved, causing the loop to break.
+LLM - "I see the user asked for city weather. I see that I requested the weather tool, and
+ I see that the tool responded saying it is sunny/rainy. Based on all of this context, I can now finally write back"
+
 THE TOOL CALL TRILOGY:
 ----------------------
 1. **Schema Binding (`bind_tools`)**: Attaches functional blueprints directly to the LLM. 
    This exposes the tool's signature (name, parameters, arguments) to the model.
+   https://reference.langchain.com/python/langchain-core/language_models/chat_models/BaseChatModel/bind_tools
 2. **Model Argument Generation**: The model processes a question and returns an 
    `AIMessage` containing a structured `tool_calls` dictionary instead of generic text.
+   https://reference.langchain.com/python/langchain-core/messages/ai/AIMessage
 3. **Manual Execution Loop**: Intercepts the generated argument dictionary, calls 
    the tool function programmatically, appends the result as a `ToolMessage`, 
    and returns the collection to the LLM for a final conversational answer.
+   https://reference.langchain.com/python/langchain-core/messages/tool/ToolMessage
 ================================================================================
 """
 
@@ -33,16 +41,13 @@ from langchain.tools import tool
 load_dotenv()
 os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
 
+# Initialize the model for streaming and batch execution
+OPENAI_MODEL = "gpt-4o-mini"
+model = init_chat_model(OPENAI_MODEL)
+
 question1 ="How does a microwave cook food so fast? "
 question2 ="Why do mirrors reflect our image?"
 append = " Please explain in 3 sentences."
-
-
-GROQ_MODEL = "groq:qwen/qwen3-32b"
-model = init_chat_model(GROQ_MODEL)
-# response = model.invoke(question1 + append)
-# print("\n=======Question 1:========", question1)
-# print("Response:", response)
 
 # Decorator - registers a function as an  tool that an agent or LLM can call.
 @tool
@@ -59,43 +64,45 @@ model_with_tools = model.bind_tools([get_weather])
 city1 = "London"  # (United Kingdom)
 city2 = "Paris"   # (France)
 city3 = "New York"  # (United States)
-city4 = "Sydney"  # (Australia)
-city5 = "Cairo"   # (Egypt)
 
-question3 = f"What's the weather like in {city1}?"
-print("\n=======Question 3:========", question3)
+question1 = f"What's the weather like in {city1}?"
 
-response_tool = model_with_tools.invoke(question3)
-print("\n========= What's the weather like in {city1}?")
-#Look for tool_calls': [{'id': 'abc', 'function': {'arguments': '{"city":"London"}', 'name': 'get_weather'}
-print("Response:", response_tool)
+# ### Tool Execution Loops
+# LLMs do not have "state" or memory on their own; they only know what you pass into them in the messages array
 
+# Step 1: User Question -> LLM decides to call a tool
+messages = [("user", "What's the weather like in London?")]
+# Execute the tool with the generated arguments
+# Run the local get_weather function using LangChain's tool.invoke(), and gets back a ToolMessage
+ai_msg = model_with_tools.invoke(messages)
 
-for tool_call in response_tool.tool_calls:
+# By appending this ai_msg to the list, we are saving the LLM's intent to call a tool into the conversation history.
+messages.append(ai_msg) 
+for tool_call in ai_msg.tool_calls:
     # View tool calls made by the model
     print(f"Tool: {tool_call['name']}")
     print(f"Args: {tool_call['args']}")
 
-# ### Tool Execution Loops
 
-# Step 1: Model generates tool calls
-# question4 = f"What's the weather like in {city2}?"
-messages = [{"role": "user", "content": question3}]
-ai_msg = model_with_tools.invoke(messages)
-messages.append(ai_msg)
 
-# Step 2: Execute tools and collect results
-for tool_call in ai_msg.tool_calls:
-    # Execute the tool with the generated arguments
-    tool_result = get_weather.invoke(tool_call)
-    messages.append(tool_result)
+# Step 2: Manually execute the requested tool and append the result
+tool_call = ai_msg.tool_calls[0]
+tool_result = get_weather.invoke(tool_call)
+# By appending this tool_result to the list, we are saving the actual answer from the tool into the conversation history.
+messages.append(tool_result)
+print("Response:", tool_result)
 
-# Step 3: Pass results back to model for final response
-# Look for ToolMessage(content='The weather in London is abc.', name='get_weather', tool_call_id='xyz')]
+
+# Step 3: Send the whole history back for the final conversational answer
+# the LLM looks at the whole chain of events
+# I see the user asked for London weather. I see that I requested the weather tool, and I see that the tool responded saying it is sunny. Based on all of this context, I can now finally write back
 final_response = model_with_tools.invoke(messages)
-print("\n========= Final Response What's the weather like in========", city1)
-print(final_response.text)
+print("\n========= Final Response What's the weather like in========")
+print(final_response.content)
 
 # Inspect the final assembled conversation chain structure state array
 print("\n========= Final Messages ========")
-print(messages)
+print(messages) # NOTE : Just for testing 
+
+
+

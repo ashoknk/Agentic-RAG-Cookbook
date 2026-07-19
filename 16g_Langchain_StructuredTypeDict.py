@@ -36,7 +36,8 @@ load_dotenv()
 os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
 
 ## Initialize the Model
-GROQ_MODEL = "groq:qwen/qwen3-32b"
+# GROQ_MODEL = "groq:qwen/qwen3-32b"
+GROQ_MODEL = "groq:llama-3.1-8b-instant"
 model = init_chat_model(GROQ_MODEL)
 
 ## 1. Define the Lightweight Schema
