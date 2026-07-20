@@ -76,7 +76,7 @@ image_data_store = {}              # In-memory dictionary to hold base64 data fo
 
 # 2a. Open and process the target image
 pil_image = Image.open(IMAGE_PATH).convert("RGB")
-image_id = "top_ip_sources_chart"
+image_id = "data/top_ip_sources_chart"
 
 # 2b. Convert image to Base64 (Required format for sending images to OpenAI Vision models)
 buffered = io.BytesIO()
