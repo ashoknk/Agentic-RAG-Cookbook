@@ -19,36 +19,25 @@ validation at runtime.
 """
 
 import os
-import logging
-import warnings
 import random
-from dataclasses import dataclass
+
 from typing import Literal
 from typing_extensions import TypedDict
-from dotenv import load_dotenv
+
 
 # LangChain and LangGraph Imports
-from langchain_core.documents import Document
-from langchain_community.vectorstores import FAISS
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.retrievers import BM25Retriever
-from langchain_core.prompts import PromptTemplate
 from langgraph.graph import StateGraph, START, END
 from IPython.display import Image, display
 
 # ### State Schema With DataClasses
-# When we define a LangGraph StateGraph, we use a state schema.
-# The state schema represents the structure and types of data that our graph will use.
-# All nodes are expected to communicate with that schema.
-# LangGraph offers flexibility in how you define your state schema, 
-# accommodating various Python types and validation approaches!
-
+# When initializing the graph with builder = StateGraph(TypedDictState), 
+# you are telling LangGraph what key-value pairs (name and game) your graph state 
+# will hold across nodes. All nodes are expected to communicate with that schema.
 # we can use the TypedDict class from python's typing module.
-# It allows you to specify keys and their corresponding value types.
+
 # But, note that these are type hints.
 # They can be used by static type checkers (like mypy) or IDEs to catch potential 
-# type-related errors before the code is run.
-# But they are not enforced at runtime!
+# type-related errors before the code is run. But they are not enforced at runtime!
 
 class TypedDictState(TypedDict):
     name: str
@@ -59,11 +48,11 @@ def play_game_typed(state: TypedDictState):
     return {"name": state['name'] }
 
 def pickeball_typed(state: TypedDictState):
-    print("-- pickeball node has been called--")
+    print("-- Pickeball node has been called--")
     return {"name": state["name"] , "game": "pickeball"}
 
 def soccer_typed(state: TypedDictState):
-    print("-- soccer node has been called--")
+    print("-- Soccer node has been called--")
     return {"name": state["name"] , "game": "soccer"}
 
 def decide_play_typed(state: TypedDictState) -> Literal["pickeball", "soccer"]:
@@ -86,15 +75,25 @@ builder.add_edge("soccer", END)
 
 graph_typed = builder.compile()
 
+# TypedDict cleanly defines the shared schema structure across playgame, pickeball, and soccer nodes,
+# allowing LangGraph to merge dictionary updates automatically 
+# (e.g., merging {'name': 'PeterPan'} with {'game': 'soccer'}).
+
 print("========Using TypedDict =========\n")
 # Invoke calls with string 
-result1 = graph_typed.invoke({"name": "Peter"})
+result1 = graph_typed.invoke({"name": "PeterPan"})
 print(result1)
+print("\n")
 
-result2 = graph_typed.invoke({"name": "Peter"})
+result2 = graph_typed.invoke({"name": "TinkerBell"})
 print(result2)
+print("\n")
 
 # Invoke calls with int
 result3 = graph_typed.invoke({"name": 123})
 print(result3)
 
+
+# Notice how {'name': 123} passes through smoothly. This proves that if you require strict runtime
+# type enforcement (e.g., throwing an error when an integer 123 is passed for a str), 
+# you would need to use a Pydantic BaseModel or dataclasses with runtime validation instead of TypedDict

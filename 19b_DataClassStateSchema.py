@@ -26,53 +26,42 @@ import logging
 import warnings
 import random
 from dataclasses import dataclass
-from typing import Literal
+from typing import Optional, Literal
 from typing_extensions import TypedDict
-from dotenv import load_dotenv
 
 # LangChain and LangGraph Imports
-from langchain_core.documents import Document
-from langchain_community.vectorstores import FAISS
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.retrievers import BM25Retriever
-from langchain_core.prompts import PromptTemplate
 from langgraph.graph import StateGraph, START, END
-from IPython.display import Image, display
+
 
 # ### State Schema With DataClasses
 # When we define a LangGraph StateGraph, we use a state schema.
 # The state schema represents the structure and types of data that our graph will use.
 # All nodes are expected to communicate with that schema.
-# LangGraph offers flexibility in how you define your state schema, 
-# accommodating various Python types and validation approaches!
 
-# we can use the TypedDict class from python's typing module.
-# It allows you to specify keys and their corresponding value types.
-# But, note that these are type hints.
-# They can be used by static type checkers (like mypy) or IDEs to catch potential 
-# type-related errors before the code is run.
-# But they are not enforced at runtime!
 
 # ### ========= Dataclasses ========= ###
 # Python's dataclasses provide another way to define structured data.
-# Dataclasses offer a concise syntax for creating classes that are primarily 
-# used to store data.
+# Dataclasses offer a concise syntax for creating classes that are primarily used to store data.
+
+# Standard Python @dataclass decorators do not perform runtime type checking or validation.
+# The type annotations inside a dataclass (name: str, game: Literal[...]) act purely as type hints 
+# for static type checkers (like Pyright/MyPy) and IDE auto-completion.
 
 @dataclass
 class DataClassState:
     name: str
-    game: Literal["soccer", "pickeball"]
+    game: Optional[Literal["soccer", "pickeball"]] = None
 
 def play_game_dc(state: DataClassState):
     print("---Play Game node has been called--")
     return {"name": state.name }
 
 def pickeball_dc(state: DataClassState):
-    print("-- pickeball node has been called--")
+    print("-- Pickeball node has been called--")
     return {"name": state.name , "game": "pickeball"}
 
 def soccer_dc(state: DataClassState):
-    print("-- soccer node has been called--")
+    print("-- Soccer node has been called--")
     return {"name": state.name , "game": "soccer"}
 
 def decide_play_dc(state: DataClassState) -> Literal["pickeball", "soccer"]:
@@ -96,11 +85,13 @@ graph_dc = builder_dc.compile()
 
 print("========Using DataClasses =========\n")
 # Invoke calls for Dataclass state
-result_dc1 = graph_dc.invoke(DataClassState(name="Peter", game="pickeball"))
+result_dc1 = graph_dc.invoke(DataClassState(name="PeterPan"))
 print(result_dc1)
+print("\n")
 
-result_dc2 = graph_dc.invoke(DataClassState(name="Jeniffer", game="soccer"))
+result_dc2 = graph_dc.invoke(DataClassState(name="TinkerBell"))
 print(result_dc2)
+print("\n")
 
-result_dc3 = graph_dc.invoke(DataClassState(name=123, game="soccer"))
+result_dc3 = graph_dc.invoke(DataClassState(name=123))
 print(result_dc3)

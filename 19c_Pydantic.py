@@ -23,17 +23,11 @@ instantly rejecting improper data types before any graph logic executes.
 """
 
 import os
-import logging
-import warnings
-from dotenv import load_dotenv
 
 # LangGraph and Pydantic Imports
 from langgraph.graph import StateGraph, START, END
 from pydantic import BaseModel
 
-# --- Configuration ---
-# Load environment variables (useful for API keys if adding LLMs later)
-load_dotenv()
 
 # --- State Definition ---
 # Using Pydantic's BaseModel for the State Schema.
@@ -68,7 +62,7 @@ graph = builder.compile()
 
 # Successful invocation: "Peter" is a valid string
 print("Result with valid input:")
-print(graph.invoke({"name": "Peter"}))
+print(graph.invoke({"name": "PeterPan"}))
 
 # Error Case Demonstration:
 # The following call would trigger a Pydantic Validation Error because 123 is an int, not a str.

@@ -1,121 +1,57 @@
 """
-================================================================================
-This diagnostic script isolates conversation memory tracking and tool-calling structures. 
-It serves as a playground exposing the fatal **State Override Problem** that happens 
-by default in basic dictionary states when custom reducers are not applied.
-
-[Image showing dictionary merge operation overwriting message history list]
-
-1. CONVERSATION FLOW SIMULATION: Creates a conversational text stack using manual 
-   `AIMessage` and `HumanMessage` arrays passed directly to a Groq LLM model.
-2. RAW FUNCTION BINDING (`bind_tools`): Defines an arithmetic function and binds 
-   its parameter definitions to the LLM instance to track tool call formatting.
-3. THE OVERRIDE DISASTER DEMONSTRATION: Sets up a mock state dictionary containing 
-   the user's initial messages. It simulates a node finishing execution and 
-   returning a new response chunk.
-4. STANDARD DICTIONARY UPDATE EVALUATION: Merges the node response using Python's 
-   native `.update()` method. This demonstrates how standard merge operations 
-   completely overwrite historical context arrays, highlighting the absolute 
-   necessity of LangGraph state Reducer functions.
-================================================================================
+Demonstrate the default "State Override Problem" in LangGraph.
+When a Reducer is NOT used, returning new state updates overwrites 
+the existing state key instead of appending to it.
 """
-
 import os
-import random
-from pprint import pprint
-from dotenv import load_dotenv
-from langchain_groq import ChatGroq
-from langchain_core.messages import AIMessage, HumanMessage
+from IPython.display import Image,display
+from typing_extensions import TypedDict
+from langchain_core.messages import HumanMessage, AIMessage
+from langgraph.graph import StateGraph, START, END
 
-# ==============================================================================
-# 1. INITIAL PREPARATION: Environment & Keys Setup
-# ==============================================================================
-load_dotenv()
-os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
-os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
+# 1. Define State WITHOUT a Reducer
+class PlainState(TypedDict):
+    messages: list  # Pure list type hint, no reducer annotation!
 
-GROQ_MODEL = "llama-3.1-8b-instant"
-llm = ChatGroq(model=GROQ_MODEL)
+# 2. Node Functions
+def step_1(state: PlainState):
+    print("--- STEP 1 ---")
+    print(f"Current State: {state['messages']}")
+    # Returns a new message
+    return {"messages": [AIMessage(content="Hello! How can I help?")]}
 
-# ==============================================================================
-# 2. UNDERSTANDING CORE MESSAGE OBJECTS
-# ==============================================================================
-print("======================================================================")
-print("📦 PART 1: CORE MESSAGE OBJECTS & CHAT INVOCATION")
-print("======================================================================")
+def step_2(state: PlainState):
+    print("\n--- STEP 2 ---")
+    print(f"Current State: {state['messages']}")
+    # Returns another message
+    return {"messages": [HumanMessage(content="I want to learn Python.")]}
 
-messages = [AIMessage(content="Please tell me how can I help", name="LLMModel")]
-messages.append(HumanMessage(content="I want to learn coding", name="Ash"))
-messages.append(AIMessage(content="Which programming language you want to learn", name="LLMModel"))
-messages.append(HumanMessage(content="I want to learn python programming language", name="Ash"))
+# 3. Build & Compile Graph
+builder = StateGraph(PlainState)
+builder.add_node("step_1", step_1)
+builder.add_node("step_2", step_2)
 
-# NOTE: This is a  demonstration of how message objects are stored in Python List (not Graph state)
-print("Current conversation history stack:")
-for message in messages:
-    message.pretty_print()
+builder.add_edge(START, "step_1")
+builder.add_edge("step_1", "step_2")
+builder.add_edge("step_2", END)
 
-# Pinging the model with the message history array
-result = llm.invoke(messages)
-# NOTE: Response is not important here as we are demonstrating the message handling.
-# print(f"\n🤖 LLM Raw Response:\n{result.content}\n")
+graph = builder.compile()
 
-# ==============================================================================
-# 3. TOOL BINDING MECHANICS
-# ==============================================================================
-print("\n======================================================================")
-print("🛠️ PART 2: TOOL BINDING WITH THE LLM")
-print("======================================================================")
+# Save the file as a PNG
+OUTPUT_IMAGE_FOLDER = "Image_PNGs"
+os.makedirs(OUTPUT_IMAGE_FOLDER, exist_ok=True)
 
-def add(a: int, b: int) -> int:
-    """Add a and b
-    Args:
-        a (int): first int
-        b (int): second int
-    Returns:
-        int
-    """
-    return a + b
+OUTPUT_IMAGE_PATH = OUTPUT_IMAGE_FOLDER + "/20a_Messages_Tools_Baseline.png"
+graph.get_graph().draw_mermaid_png(output_file_path=OUTPUT_IMAGE_PATH)    
+# 2. Automatically display/open the image on macOS
+os.system(f"open {OUTPUT_IMAGE_PATH}")
 
-# Bind the tool scheme to the model metadata definition
-tool_message = HumanMessage(content="What is 2 plus 2", name="Ash")
-llm_with_tools = llm.bind_tools([add])
-tool_call = llm_with_tools.invoke([tool_message])
 
-print("Tool Call content string returned:")
-print(f"Content: '{tool_call.content}'")
-print(f"Detected Tool Calls Array: {tool_call.tool_calls}\n")
+# 4. Run Execution
+print("========== WITHOUT REDUCER (OVERRIDE BEHAVIOR) ==========\n")
+initial_input = {"messages": [HumanMessage(content="Hi, This is Harry Potter and I like magic")]}
+final_state = graph.invoke(initial_input)
 
-print("Updated conversation history stack:")
-tool_message.pretty_print()
-
-# ==============================================================================
-# 4. THE STATE OVERRIDE PROBLEM (Why we need Reducers)
-# ==============================================================================
-print("\n======================================================================")
-print("❌ PART 3: THE STATE OVERRIDE PROBLEM (STANDARD PYTHON BEHAVIOR)")
-print("======================================================================")
-
-# Simulation: Standard state dictionary without a custom Reducer framework
-mock_state = {
-    "messages": [HumanMessage(content="Hello, graph!")]
-}
-
-print("Initial State Context:")
-print(mock_state)
-
-# A Node executes and returns a state update dictionary payload
-node_update = {
-    "messages": [AIMessage(content="Hello back!")]
-}
-
-print(f"\nNode finishes execution and returns update: {node_update}")
-
-# Standard dict merge simulation (Default state update logic)
-mock_state.update(node_update)
-
-print("\nResulting State (Notice the initial 'Hello, graph!' was COMPLETELY OVERRIDDEN):")
-print(mock_state)
-print("⚠️ Conclusion: Without a Reducer, we lose our entire conversation history memory!")
-print("======================================================================\n")
-
-# NOTE: Please note I donot use StateGraph.compile() in this example. We use it in next example
+print("\n========== FINAL RESULT ==========")
+print(f"Final State Messages: {final_state['messages']}")
+print("\n❌ PROBLEM: We lost 'Hi...' and 'Hello! How can I help?' because each node OVERWROTE the list!")
