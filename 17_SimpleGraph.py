@@ -1,28 +1,22 @@
-# ### Build a Simple Workflow or Graph Using LangGraph
-# #### State
-# First, define the State of the graph.
-# The State schema serves as the input schema for all Nodes and Edges in the graph.
-# Let's use the TypedDict class from python's typing module as our schema, 
-# which provides type hints for the keys.
 """
 ================================================================================
 SCRIPT PURPOSE & OVERVIEW:
 --------------------------
 This script serves as a foundational hello-world lab for **LangGraph**, 
-introducing how to create a cyclical or non-linear stateful execution workflow. 
-It breaks down the core structural units of any graph pipeline: States, 
-Nodes, Edges, and Conditional Routers.
+introducing how to create a non-linear stateful execution workflow. 
+It breaks down the core structural units of any graph pipeline: 
+States, Nodes, Edges, and Conditional Routers.
 
 
 THE CORE MECHANICS:
 -------------------
-- **State**: A unified dictionary (`TypedDict`) that acts as the single source of 
+- State: A unified dictionary that acts as the single source of 
   truth passing through every stage of the lifecycle.
-- **Nodes**: Standard Python functions that process the state and return incremental 
-  updates to it.
-- **Edges**: Paths connecting nodes together to establish execution sequence.
-- **Conditional Edges**: Decision-making routers that dynamically compute the next 
+- Nodes: Standard Python functions that process the state and return incremental updates to it.
+- Edges: Paths connecting nodes together to establish execution sequence.
+- Conditional Edges: Decision-making routers that dynamically compute the next 
   destination based on the state payload at runtime.
+  https://docs.langchain.com/oss/python/langgraph/graph-api
 
 THE LOGICAL FLOW:
 -----------------
@@ -49,9 +43,7 @@ class State(TypedDict):
 
 #### ======= Nodes ======= ####
 # Nodes are just python functions.
-# The first positional argument is the state, as defined above.
-# Because the state is a TypedDict with schema as defined above, each node can access the key, 
-# graph_state, with state['graph_state'].
+# Because the state is a TypedDict with schema as defined above, each node can access the key, with state['graph_state'].
 # Each node returns a new value of the state key graph_state.
 # By default, the new value returned by each node will override the prior state value.
 
@@ -91,30 +83,32 @@ def random_play(state:State)-> Literal['soccer','pickelball']:
 # Finally, we compile our graph to perform a few basic checks on the graph structure.
 # We can visualize the graph as a Mermaid diagram.    
 
-
 ## Build Graph
 graph=StateGraph(State)
 
 ## Adding the nodes
+# https://reference.langchain.com/python/langgraph/graph/state/StateGraph/add_node
 graph.add_node("start_play",start_play)
 graph.add_node("soccer",soccer)
 graph.add_node("pickelball",pickelball)
 
 ## Schedule the flow of the graph
+# https://reference.langchain.com/python/langgraph/graph/state/StateGraph/add_edge
+# https://reference.langchain.com/python/langgraph/graph/state/StateGraph/add_conditional_edges
 graph.add_edge(START,"start_play")
 graph.add_conditional_edges("start_play",random_play)
 graph.add_edge("soccer",END)
 graph.add_edge("pickelball",END)
 
 ## Compile the graph
+# https://reference.langchain.com/python/langgraph/graph/state/StateGraph/compile
 graph_builder=graph.compile()
 
-## NOTE: View for Jupyter notebook
-# display(Image(graph_builder.get_graph().draw_mermaid_png()))
-
-
 # 1. Save the file as a PNG
-OUTPUT_IMAGE_PATH = "Image_PNGs/SimpleGraph.png"
+OUTPUT_IMAGE_FOLDER = "Image_PNGs"
+os.makedirs(OUTPUT_IMAGE_FOLDER, exist_ok=True)
+
+OUTPUT_IMAGE_PATH = OUTPUT_IMAGE_FOLDER + "/SimpleGraph.png"
 graph_builder.get_graph().draw_mermaid_png(output_file_path=OUTPUT_IMAGE_PATH)    
 # 2. Automatically display/open the image on macOS
 os.system(f"open {OUTPUT_IMAGE_PATH}")

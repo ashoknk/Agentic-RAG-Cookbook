@@ -1,18 +1,12 @@
-# ### Structured output
-# Models can be requested to provide their response in a format matching a given schema. 
-# This is useful for ensuring the output can be easily parsed and used in subsequent processing. 
-# LangChain supports multiple schema types and methods for enforcing structured output.
-
-# ### Pydantic
-# Pydantic models provide the richest feature set with field validation, descriptions, and nested structures.
-# Pydantic is ideal when you need deep nested schemas, default values, and strict runtime type checking.
-
 """
 ================================================================================
 This script introduces structured data extraction using **Pydantic (v2)** schemas 
 integrated directly into a LangChain execution flow. It demonstrates how to coerce 
 unstructured text generations from an LLM into reliable, nested data structures.
 
+# ### Pydantic ### 
+Pydantic models provide the richest feature set with field validation, descriptions, and nested structures.
+Pydantic is ideal when you need deep nested schemas, default values, and strict runtime type checking.
 
 WHY USE PYDANTIC IN PRODUCTION?
 -------------------------------
@@ -23,7 +17,7 @@ attribute tracking, making them ideal for enterprise API downstream consumption.
 1. OBJECT Blueprinting: Defines structured schema layers (`Actor`, `MovieDetails`) 
    using Pydantic fields equipped with clear documentation descriptions.
 2. SCHEMA COMPLIANCE ENFORCEMENT: Uses `.with_structured_output()` to bind the 
-   target model (`qwen3-32b`), forcing the model to generate responses matching 
+   target model , forcing the model to generate responses matching 
    the precise schema dimensions.
 3. EXECUTION & PARSING: Invokes a request, revealing how attributes can be accessed 
    via object dot-notation or cleanly exported to standard JSON strings with a 
@@ -41,7 +35,9 @@ load_dotenv()
 os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
 
 ## Initialize the Model
-GROQ_MODEL = "groq:qwen/qwen3-32b"
+# NOTE "groq:llama-3.1-8b-instant" does not work well for this code
+# # GROQ_MODEL = "groq:qwen/qwen3.6-27b"
+GROQ_MODEL = "groq:openai/gpt-oss-20b"
 model = init_chat_model(GROQ_MODEL)
 
 ## 1. Define the Structured Schema (with nested structure)
@@ -60,27 +56,35 @@ class MovieDetails(BaseModel):
 structured_llm = model.with_structured_output(MovieDetails)
 
 ## 3. Invoke the query
-movie_query = "Provide details about the movie Project Hail Mary"
+movie_query = "Provide details about the movie The Shawshank Redemption (1994)"
 print(f"Sending Query: '{movie_query}'...\n")
 movie_data = structured_llm.invoke(movie_query)
 
 ## ==========================================
 ## SHOWCASING THE IMPORTANCE OF STRUCTURED DATA
 ## ==========================================
+# Exporting cleanly to valid JSON with one method call. 
+# `model_dump`  Generate a dictionary representation of the model
+# https://reference.langchain.com/python/langsmith/_openapi_client/_models/BaseModel/model_dump
+# https://pydantic.dev/docs/validation/dev/concepts/serialization/
+print("\n📋 CLEAN EXPORT TO JSON STRING:")
+print(json.dumps(movie_data.model_dump(), indent=4))
+
+
 print("=" * 50)
 print("🏆 VISUALIZING STRUCTURED DATA (Pydantic Object)")
 print("=" * 50)
 
-# Accessing fields natively as Python objects (impossible with plain text LLM output)
-print(f"🎬 MOVIE:    {movie_data.title.upper()} ({movie_data.year})")
-print(f"💰 BUDGET:   ${movie_data.budget} Million" if movie_data.budget else "💰 BUDGET:   Unknown")
-print(f"🎭 GENRES:   {', '.join(movie_data.genres)}")
-print("\n👥 CAST & ROLES:")
-print("-" * 30)
-for actor in movie_data.cast:
-    print(f" • {actor.name.ljust(20)} -> Playing: {actor.role}")
-print("-" * 30)
+# Accessing fields natively as Python objects
+print(f"🎬 MOVIE: {movie_data.title.upper()} ({movie_data.year})")
+print(f"💰 BUDGET: ${movie_data.budget} Million" if movie_data.budget else "💰 BUDGET: Unknown")
+print(f"🎭 GENRES: {', '.join(movie_data.genres)}")
 
-# Exporting cleanly to valid JSON with one method call
-print("\n📋 CLEAN EXPORT TO JSON STRING:")
-print(json.dumps(movie_data.model_dump(), indent=4))
+# Generating a cleanly aligned terminal text table using Pydantic dot-notation
+print("\n📊 CAST LIST TABLE:")
+print(f"{'Actor Name':<25} | {'Character Role':<25}")
+print("-" * 55)
+for actor in movie_data.cast:
+    # Notice we use actor.name and actor.role here instead of actor['name']
+    print(f"{actor.name:<25} | {actor.role:<25}")
+print("-" * 55)
