@@ -20,7 +20,7 @@ THE CORE MECHANICS:
   checkpoint manager, enabling multi-step context persistence across distinct runs.
 
 1. PREPARATION & TOOL BINDING: Loads environmental credentials and attaches all 
-   functional tools directly to a Groq-hosted `qwen3-32b` instance.
+   functional tools directly to a Groq-hosted instance.
 2. PIPELINE DESIGN: Connects the model node (`tool_calling_llm`) to a robust `ToolNode` 
    canvas using LangGraph's native `tools_condition` branch router.
 3. SYSTEM VERIFICATION: Launches consecutive multi-step math prompts on a single 
@@ -43,7 +43,8 @@ os.environ["USER_AGENT"] = "Agentic-RAG-Cookbook/1.0 (contact: ash@codeaiwashnai
 from langchain_community.tools import ArxivQueryRun, WikipediaQueryRun
 from langchain_community.utilities import WikipediaAPIWrapper, ArxivAPIWrapper
 from langchain_community.tools.tavily_search import TavilySearchResults
-# TODO from langchain_tavily import TavilySearch
+# NOTE Might have to use in future- 
+#from langchain_tavily import TavilySearch
 #tavily_tool = TavilySearch(k=2)
 
 from langchain_groq import ChatGroq
@@ -59,10 +60,7 @@ logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
 logging.getLogger("transformers").setLevel(logging.ERROR)
 
 # ### ReAct Agent Architecture
-#
-# #### Aim
-# This is the intuition behind ReAct, a general agent architecture.
-#
+# The intuition behind ReAct, a general agent architecture.
 # 1. act - let the model call specific tools
 # 2. observe - pass the tool output back to the model
 # 3. reason - let the model reason about the tool output to decide what to do next (e.g., call another tool or just respond directly)
@@ -118,25 +116,27 @@ def divide(a: int, b: int) -> float:
     """
     return a / b
 
-# ### Tavily Search Tool
+#Tavily Search Tool
 tavily = TavilySearchResults()
 
-# ### Combine all the tools in the list
+#Combine all the tools in the list
 tools = [arxiv, wiki, tavily, add, subtract, multiply, divide]
 
 # NOTE just for testing 
 # for tool in tools:
 #     print(f"Tool name: {tool}")
 
-# ## Initialize LLM model
-llm = ChatGroq(model="qwen/qwen3-32b")
+# Initialize LLM model
+GROQ_MODEL = "llama-3.1-8b-instant"
+# GROQ_MODEL = "qwen/qwen3.6-27b"
+llm = ChatGroq(model=GROQ_MODEL)
+# llm = ChatGroq(model=GROQ_MODEL, temperature=0)
 llm_with_tools = llm.bind_tools(tools)
 
 # ## State Schema
 class State(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]
 
-# ### Entire Chatbot With LangGraph
 
 # ### Node definition
 def tool_calling_llm(state: State):
@@ -150,6 +150,13 @@ builder.add_node("tool_calling_llm", tool_calling_llm)
 builder.add_node("tools", ToolNode(tools, handle_tool_errors=True))
 
 builder.add_edge(START, "tool_calling_llm")
+tools_condition
+# `tools_condition` Conditional routing function for tool-calling workflows.
+# This utility function implements the standard conditional logic for ReAct-style agents: 
+# if the last AIMessage contains tool calls, route to the tool execution node; otherwise, end the workflow. 
+# This pattern is fundamental to most tool-calling agent architectures.
+# https://reference.langchain.com/python/langgraph.prebuilt/tool_node/tools_condition
+
 builder.add_conditional_edges(
     "tool_calling_llm",
     # If the latest message (result) from assistant is a tool call -> tools_condition routes to tools
@@ -158,24 +165,31 @@ builder.add_conditional_edges(
 )
 builder.add_edge("tools", "tool_calling_llm")
 
-# ### Agent Memory
-# #### Aim
-# Let's introduce Agent With Memory
+
+# Agent With Memory
+# https://docs.langchain.com/oss/python/langgraph/add-memory
 memory = MemorySaver()
 graph_memory = builder.compile(checkpointer=memory)
 
+# Generate and automatically show system diagram layout on execution
+OUTPUT_IMAGE_FOLDER = "Image_PNGs"
+os.makedirs(OUTPUT_IMAGE_FOLDER, exist_ok=True)
+OUTPUT_IMAGE_PATH = OUTPUT_IMAGE_FOLDER + "/ChatbotsWithMultipletools.png"
+graph_memory.get_graph().draw_mermaid_png(output_file_path=OUTPUT_IMAGE_PATH)    
+# os.system(f"open {OUTPUT_IMAGE_PATH}")
+
 # Example Invocation with Memory
 config = {"configurable": {"thread_id": "1"}}
+print("\n---------First Math Query  --------- ")
 input_msg = [HumanMessage(content="Add 12 and 13 and Subtract 3 from the result.")]
 output = graph_memory.invoke({"messages": input_msg}, config=config)
 
 for m in output['messages']:
     m.pretty_print()
 
-print("\n---------First tool run using Agentic RAG is done --------- ")
+print("\n---------Follow up Math Query  --------- ")
 
 # Follow-up question using memory
-# follow_up = [HumanMessage(content="Add 2 to 10 and then multiply by 3 from the result and then divide by 5.")]
 follow_up = [HumanMessage(content="Add 3 to last result and then multiply by 3 from the result and then divide by 5.")]
 output_2 = graph_memory.invoke({"messages": follow_up}, config=config)
 

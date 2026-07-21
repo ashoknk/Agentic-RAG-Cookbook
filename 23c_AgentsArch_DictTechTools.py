@@ -27,6 +27,8 @@ THE SPECIALIZED TOOL SUITE:
 import os
 import warnings
 import logging
+import time
+
 from typing import Annotated
 from typing_extensions import TypedDict
 from dotenv import load_dotenv
@@ -44,7 +46,7 @@ from langchain_community.tools.tavily_search import TavilySearchResults
 #tavily_tool = TavilySearch(k=2)
 
 from langchain_groq import ChatGroq
-from langchain_core.messages import AnyMessage, HumanMessage
+from langchain_core.messages import AnyMessage, HumanMessage, SystemMessage
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
@@ -80,7 +82,7 @@ api_wrapper_wolfram = WolframAlphaAPIWrapper()
 wolfram = WolframAlphaQueryRun(api_wrapper=api_wrapper_wolfram)
 print(f"📦 Loaded Tool: {wolfram.name}")
 
-# 2.3. Initialize Merriam-Webster (Dictionary & Thesaurus)
+# 2.2. Initialize Merriam-Webster (Dictionary & Thesaurus)
 api_wrapper_mw = MerriamWebsterAPIWrapper()
 mw = MerriamWebsterQueryRun(api_wrapper=api_wrapper_mw)
 print(f"📦 Loaded Tool: {mw.name}")
@@ -114,7 +116,10 @@ def divide(a: int, b: int) -> float:
 tools = [stack, wolfram, mw, tavily, add, subtract, multiply, divide]
 
 # Initialize LLM model and bind the tools
-llm = ChatGroq(model="qwen/qwen3-32b")
+
+GROQ_MODEL = "llama-3.1-8b-instant"
+# GROQ_MODEL="qwen/qwen3.6-27b"
+llm = ChatGroq(model=GROQ_MODEL, temperature=0)
 llm_with_tools = llm.bind_tools(tools)
 
 # ==============================================================================
@@ -149,32 +154,52 @@ graph_memory = builder.compile(checkpointer=memory)
 # ==============================================================================
 config = {"configurable": {"thread_id": "2"}}
 
+sys_prompt = SystemMessage(
+    content=(
+        "You are a helpful and concise assistant with access to specialized tools:\n"
+        "1. 'stack_exchange': Use strictly for software development questions, code errors, debugging, and programming exception remedies.\n"
+        "2. 'wolfram_alpha': Use for exact mathematical calculations, calculus, physics, and scientific queries.\n"
+        "3. 'merriam_webster': Use for word definitions, linguistic histories, etymologies, and dictionary lookups.\n"
+        "4. 'tavily_search_results_json': Use for real-time live internet news, current events, and general web searches.\n\n"
+        "Ensure all tool calls are output as valid, properly formatted JSON with clean spacing. Keep responses succinct and direct."
+    )
+)
+
 # --- Query 1: Targeting StackExchange ---
 print("\n" + "="*80)
 print("💻 TEST CASE 1: Targeting StackExchange (Developer Exception Lookup)")
 print("="*80)
-first_query = [HumanMessage(content="Search StackExchange for discussions on how to resolve a python AttributeError.")]
+first_query = [sys_prompt, HumanMessage(content="Search StackExchange for discussions on how to resolve a python AttributeError.")]
 output1 = graph_memory.invoke({"messages": first_query}, config=config)
-for m in output1['messages']:
-    m.pretty_print()
+output1['messages'][-1].pretty_print()
+# for m in output1['messages']:
+#     m.pretty_print()
 print("\n--------- First tool run using Agentic RAG is done --------- ")
+
+print("\nSleeping 10s to respect Groq TPM rate limits...")
+time.sleep(10)  # 👈 Pauses execution so tokens per minute drop
 
 # --- Query 2: Targeting WolframAlpha ---
 print("\n" + "="*80)
 print("🧮 TEST CASE 2: Targeting WolframAlpha (Calculus Computation)")
 print("="*80)
-second_query = [HumanMessage(content="Use Wolfram Alpha to compute the integral of x^3 from x=0 to x=4.")]
+second_query = [sys_prompt, HumanMessage(content="Use Wolfram Alpha to compute the integral of x^3 from x=0 to x=4.")]
 output_2 = graph_memory.invoke({"messages": second_query}, config=config)
-for m in output_2['messages']:
-    m.pretty_print()
+output1['messages'][-1].pretty_print()
+# for m in output_2['messages']:
+#     m.pretty_print()
 print("\n--------- 2nd tool run using Agentic RAG is done --------- ")
+
+print("\nSleeping 10s to respect Groq TPM rate limits...")
+time.sleep(10)  # 👈 Pauses execution so tokens per minute drop
 
 # --- Query 3: Targeting Merriam-Webster ---
 print("\n" + "="*80)
 print("📖 TEST CASE 3: Targeting Merriam-Webster (Lexicon Definition)")
 print("="*80)
-third_query = [HumanMessage(content="Look up the official definition and etymology of the word 'ephemeral' in the Merriam-Webster dictionary.")]
+third_query = [sys_prompt, HumanMessage(content="Look up the official definition and etymology of the word 'ephemeral' in the Merriam-Webster dictionary.")]
 output_3 = graph_memory.invoke({"messages": third_query}, config=config)
-for m in output_3['messages']:
-    m.pretty_print()    
+output1['messages'][-1].pretty_print()
+# for m in output_3['messages']:
+#     m.pretty_print()    
 print("\n--------- 3rd tool run using Agentic RAG is done --------- ")

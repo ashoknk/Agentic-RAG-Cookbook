@@ -9,7 +9,7 @@ within a single conversational turn.
 
 1. TOTAL INTEGRATION: Assembles the entire array of search engines, academic 
    scanners, and mathematical operators into a unified execution ecosystem.
-2. MODEL SCHEDULING: Binds the combined tools list to the `qwen3-32b` engine and 
+2. MODEL SCHEDULING: Binds the combined tools list to the LLM engine and 
    compiles the network graph with persistent checkpoint memory.
 3. COMPOUND PROMPT EVALUATION: Submits layered queries containing disparate instruction sets 
    (e.g., extracting recent cyberattack news *and* adding numbers *and* multiplying 
@@ -23,6 +23,7 @@ within a single conversational turn.
 import os
 import warnings
 import logging
+import time
 
 from typing import Annotated
 from typing_extensions import TypedDict
@@ -31,10 +32,12 @@ from dotenv import load_dotenv
 # Set a custom User-Agent identifying your application
 os.environ["USER_AGENT"] = "Agentic-RAG-Cookbook/1.0 (contact: ash@codeaiwashnaiku.com)"
 
-from langchain_community.tools import ArxivQueryRun, WikipediaQueryRun
-from langchain_community.utilities import WikipediaAPIWrapper, ArxivAPIWrapper
+# from langchain_community.tools import ArxivQueryRun, WikipediaQueryRun
+# from langchain_community.utilities import WikipediaAPIWrapper, ArxivAPIWrapper
+from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_community.tools.tavily_search import TavilySearchResults
-# TODO from langchain_tavily import TavilySearch
+# NOTE- For future
+# from langchain_tavily import TavilySearch
 #tavily_tool = TavilySearch(k=2)
 
 from langchain_groq import ChatGroq
@@ -50,25 +53,9 @@ logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
 logging.getLogger("transformers").setLevel(logging.ERROR)
 
 # ### ReAct Agent Architecture
-#
-# #### Aim
-# This is the intuition behind ReAct, a general agent architecture.
-#
 # 1. act - let the model call specific tools
 # 2. observe - pass the tool output back to the model
 # 3. reason - let the model reason about the tool output to decide what to do next (e.g., call another tool or just respond directly)
-
-# Initialize Arxiv tool
-api_wrapper_arxiv = ArxivAPIWrapper(top_k_results=2, doc_content_chars_max=500)
-arxiv = ArxivQueryRun(api_wrapper=api_wrapper_arxiv)
-print(f"Tool name: {arxiv.name}")
-
-# Initialize Wikipedia tool
-api_wrapper_wiki = WikipediaAPIWrapper(top_k_results=1, doc_content_chars_max=500)
-wiki = WikipediaQueryRun(api_wrapper=api_wrapper_wiki)
-print(f"Tool name: {wiki.name}")
-
-# NOTE : These 2 tools are used for testing purpose here tos show they are not being called when using math problems in prompt
 
 # Load environment variables
 load_dotenv()
@@ -77,6 +64,21 @@ os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
 os.environ["LANGCHAIN_API_KEY"] = os.getenv("LANGCHAIN_API_KEY")
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
 os.environ["LANGCHAIN_PROJECT"] = "ReAct-agent"
+
+
+# 2.1. DuckDuckGo API Setup
+ddg_search = DuckDuckGoSearchRun()
+ddg_search.name = "duckduckgo_search"
+ddg_search.description = (
+    "A search engine for general knowledge, encyclopedia entries, historical figures, "
+    "and paper summaries. Use this tool for queries about history, people, or facts."
+)
+print(f"📦 Loaded Tool: {ddg_search.name}")
+
+# 2.2. Tavily Search Setup
+tavily = TavilySearchResults(max_results=1, doc_content_chars_max=500)
+print(f"📦 Loaded Tool: {tavily.name}")
+
 
 # ### Custom Functions
 def multiply(a: int, b: int) -> int:
@@ -111,10 +113,10 @@ tavily = TavilySearchResults(
 )
 
 # ### Combine all the tools in the list
-tools = [arxiv, wiki, tavily, add, divide, multiply]
+tools = [ddg_search, tavily, add, divide, multiply]
 
 # ## Initialize LLM model
-llm = ChatGroq(model="qwen/qwen3-32b")
+llm = ChatGroq(model="qwen/qwen3.6-27b")
 llm_with_tools = llm.bind_tools(tools)
 
 # ## State Schema
@@ -149,26 +151,52 @@ builder.add_edge("tools", "tool_calling_llm")
 memory = MemorySaver()
 graph_memory = builder.compile(checkpointer=memory)
 
-# Example Invocation with Memory
-config = {"configurable": {"thread_id": "1"}}
+
 
 # Example Invocation with Memory
 config = {"configurable": {"thread_id": "1"}}
-first_query = [HumanMessage(content="Provide me the top 3 recent CyberAttack news from last 3 months,add 7 plus 13 and then multiply by 10")]
+
+
+from langchain_core.messages import SystemMessage
+
+sys_prompt = SystemMessage(
+    content=(
+        "You are an expert ReAct reasoning agent capable of compound tool orchestration. "
+        "When handling multi-part user prompts, break down the instructions into distinct sequential steps and execute all necessary tools.\n\n"
+        
+        "TOOL SELECTION RULES:\n"
+        "1. 'tavily_search_results_json': Use exclusively for live real-time web searches, breaking news, recent events, and cyberattack reports.\n"
+        "2. 'duckduckgo_search': Use for general knowledge, academic paper lookups (e.g., arXiv IDs), historical figures, and encyclopedic facts.\n"
+        "3. 'add', 'multiply', 'divide': Use these dedicated math tools strictly for arithmetic operations rather than calculating in head.\n\n"
+        
+        "COMPOUND WORKFLOW INSTRUCTIONS:\n"
+        "- If a prompt requires both information retrieval and math, trigger the search and initial arithmetic operations simultaneously or in logical sequence.\n"
+        "- Always complete intermediate math operations before calling dependent math tools (e.g., call 'add' before multiplying the result).\n"
+        "- When generating tool calls, ensure parameters are output as clean, valid JSON with proper spacing after the function name.\n"
+        "- Keep final responses concise, structured, and clearly separated by sub-task."
+    )
+)
+
+first_query = [sys_prompt, HumanMessage(content="Provide me the top 3 recent CyberAttack news from last 3 months,add 7 plus 13 and then multiply by 10")]
 output1 = graph_memory.invoke({"messages": first_query}, config=config)
+output1['messages'][-1].pretty_print()
+# for m in output1['messages']:
+#     m.pretty_print()
 
-for m in output1['messages']:
-    m.pretty_print()
+print("\nSleeping 10s to respect Groq TPM rate limits...")
+time.sleep(10)  # 👈 Pauses execution so tokens per minute drop
 
 print("\n---------1st tool run using Agentic RAG is done --------- ")
 
 # Follow-up question using memory
-second_query = [HumanMessage(content="Search for the academic arXiv paper ID 1706.03762 and summarize its architecture details and subtract 12 plus 22 and then divide by 2.")]
+second_query = [sys_prompt, HumanMessage(content="Search for the academic arXiv paper ID 1706.03762 and summarize its architecture details and subtract 12 plus 22 and then divide by 2.")]
 output_2 = graph_memory.invoke({"messages": second_query}, config=config)
+output1['messages'][-1].pretty_print()
+# for m in output_2['messages']:
+#     m.pretty_print()
 
-for m in output_2['messages']:
-    m.pretty_print()
-
+print("\nSleeping 10s to respect Groq TPM rate limits...")
+time.sleep(10)  # 👈 Pauses execution so tokens per minute drop
 
 print("\n---------2nd tool run using Agentic RAG is done --------- ")
 

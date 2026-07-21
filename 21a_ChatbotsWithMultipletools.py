@@ -5,8 +5,7 @@
 This script builds a multi-tool conversational AI assistant using LangGraph.
 It integrates three external lookup capabilities:
   1. ArXiv Query Run (Academic/Scientific Papers lookup)
-  2. Wikipedia Query Run (General Encyclopedia Search)
-  3. Tavily Search Results (Live Internet/News Search engine)
+  2. Tavily Search Results (Live Internet/News Search engine)
 
 The agent uses a StateGraph with a Reducer-annotated schema to remember 
 the sequential history of conversations and tool executions automatically.
@@ -21,33 +20,25 @@ from typing_extensions import TypedDict
 from dotenv import load_dotenv
 
 # LangChain Tool & Wrapper Imports
-from langchain_community.tools import ArxivQueryRun, WikipediaQueryRun
-from langchain_community.utilities import WikipediaAPIWrapper, ArxivAPIWrapper
+from langchain_community.tools import  WikipediaQueryRun
+from langchain_community.utilities import WikipediaAPIWrapper
+from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_community.tools.tavily_search import TavilySearchResults
+from pydantic import BaseModel, Field
+from langchain_core.tools import tool
+
 # NOTE; In future this might change to below
 # from langchain_tavily import TavilySearch
 # tavily_tool = TavilySearch(k=2)
 
-
 # Core LangChain & Model Providers
 from langchain_groq import ChatGroq
-from langchain_core.messages import AnyMessage, HumanMessage, AIMessage, SystemMessage
-from groq import BadRequestError
-
-
+from langchain_core.messages import AnyMessage, HumanMessage
 
 # LangGraph Core State Machine Utilities
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
-
-from langchain_core.tools import tool
-from pydantic import BaseModel, Field
-
-import urllib.request
-import xml.etree.ElementTree as ET
-from langchain_core.tools import tool
-
 
 # Suppress standard Python and Transformer warnings/progress logs
 warnings.filterwarnings("ignore")
@@ -68,64 +59,27 @@ os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
 # ==============================================================================
 # 2. TOOL DEFINITIONS: Configuring Wrappers & API Frameworks
 # ==============================================================================
+# 2.1. DuckDuckGo API Setup
+ddg_search = DuckDuckGoSearchRun()
+print(f"📦 Loaded Tool: {ddg_search.name}")
 
-# 2.1. ArXiv API Wrapper Setup
-@tool
-def arxiv_search(query: str) -> str:
-    """Search ArXiv for scientific papers using a query or paper ID (e.g., '1706.03762' or 'transformer')."""
-    # 1. Query arXiv's official HTTPS API directly
-    url = f"https://export.arxiv.org/api/query?search_query=all:{query}&max_results=1"
-    
-    try:
-        response = urllib.request.urlopen(url)
-        xml_data = response.read().decode('utf-8')
-        
-        # 2. Parse XML response for paper Title and Summary
-        root = ET.fromstring(xml_data)
-        ns = {'atom': 'http://www.w3.org/2005/Atom'}
-        entry = root.find('atom:entry', ns)
-        
-        if entry is None:
-            return "No papers found on ArXiv."
-            
-        title = entry.find('atom:title', ns).text.strip()
-        summary = entry.find('atom:summary', ns).text.strip()
-        
-        return f"Title: {title}\nSummary: {summary[:300]}..."
-    except Exception as e:
-        return f"ArXiv Search Error: {e}"
-
-# -----------------
-# 2.2. Wikipedia API Wrapper Setup
-# Define explicit input schema
-class WikipediaInput(BaseModel):
-    query: str = Field(description="Search query string for Wikipedia lookup, e.g. 'Machine learning'")
-
-wiki_wrapper = WikipediaAPIWrapper(top_k_results=1, doc_content_chars_max=500)
-
-@tool("wikipedia_search", args_schema=WikipediaInput)
-def wikipedia_tool(query: str) -> str:
-    """Look up factual information, definitions, and history from Wikipedia."""
-    try:
-        return wiki_wrapper.run(query)
-    except Exception as e:
-        return f"Error retrieving data from Wikipedia: {str(e)}"
-# -----------------
-
-# 2.2. Live Tavily Search Setup
+# 2.2. Tavily Search Setup
 tavily = TavilySearchResults(max_results=1, doc_content_chars_max=500)
-# print(f"📦 Loaded Tool: ")
-# -----------------
+print(f"📦 Loaded Tool: {tavily.name}")
+
 # Consolidate all instantiated search providers into a singular tools array
-# tools = [arxiv_search, wiki, tavily]
-tools = [arxiv_search, wikipedia_tool, tavily]
-print(f"📦 Loaded Tools : {arxiv_search.name} , {tavily.name} ,{wikipedia_tool.name} ")
+tools = [ddg_search, tavily]
 
 # ==============================================================================
 # 3. LLM BINDING: Coupling Tools to the LLM Schema Interface
 # ==============================================================================
-# GROQ_MODEL = "llama-3.1-8b-instant"
-GROQ_MODEL = "llama-3.3-70b-versatile" # NOTE - Try with this model if it helps
+GROQ_MODEL = "llama-3.1-8b-instant"
+# GROQ_MODEL = "llama-3.3-70b-versatile" # NOTE - Try with this model if it helps
+# With small/fast models like llama-3.1-8b-instant, randomness often causes the LLM to output 
+# malformed JSON, missing parameter keys, or invalid tags
+
+
+# temperature=0 is one way to reduce tool-calling errors when working with Groq and LangGraph.
 llm = ChatGroq(model=GROQ_MODEL, temperature=0)
 
 # Bind tool definition signatures to the LLM model metadata layer
@@ -142,16 +96,8 @@ class State(TypedDict):
 # 5. GRAPH ARCHITECTURE: Nodes, Edges, and Compilation
 # ==============================================================================
 def tool_calling_llm(state: State):
-    try:
-        response = llm_with_tools.invoke(state["messages"])
-        return {"messages": [response]}
-    except BadRequestError as e:
-        # Gracefully handle Groq tool validation errors
-        print(f"\n⚠️ Handled Groq Tool Error: {e}")
-        fallback_msg = AIMessage(
-            content="I ran into an issue formatting the search properly. Could you rephrase your query?"
-        )
-        return {"messages": [fallback_msg]}
+    """Primary inference node executing our multi-tool model over history"""
+    return {"messages": [llm_with_tools.invoke(state["messages"])]}
 
 # Instantiate the StateGraph core builder
 builder = StateGraph(State)
@@ -173,25 +119,28 @@ builder.add_edge("tools", END)
 graph = builder.compile()
 
 # Generate and automatically show system diagram layout on execution
-# OUTPUT_IMAGE_FOLDER = "Image_PNGs"
-# os.makedirs(OUTPUT_IMAGE_FOLDER, exist_ok=True)
-# OUTPUT_IMAGE_PATH = OUTPUT_IMAGE_FOLDER + "/ChatbotsWithMultipletools.png"
-# graph.get_graph().draw_mermaid_png(output_file_path=OUTPUT_IMAGE_PATH)    
-# os.system(f"open {OUTPUT_IMAGE_PATH}")
+OUTPUT_IMAGE_FOLDER = "Image_PNGs"
+os.makedirs(OUTPUT_IMAGE_FOLDER, exist_ok=True)
+OUTPUT_IMAGE_PATH = OUTPUT_IMAGE_FOLDER + "/ChatbotsWithMultipletools.png"
+graph.get_graph().draw_mermaid_png(output_file_path=OUTPUT_IMAGE_PATH)    
+os.system(f"open {OUTPUT_IMAGE_PATH}")
 
 # ==============================================================================
 # 6. RUNTIME PIPELINE EXECUTION: Testing Diverse Query Formats
 # ==============================================================================
 
-# --- Example 1: Academic Paper/ArXiv Query ---
-# Look for "Tool Calls: arxiv_search (abc)"
+# --- Example 1: Web Search / DuckDuckGo Query ---
+# Look for "Tool Calls: duckduckgo_search (abc)"
 print("\n" + "="*80)
-print("📚 TEST CASE 1: Invoking Graph for Arxiv Query (Specific Paper ID)")
+print("🔍 TEST CASE 1: Invoking Graph for DuckDuckGo Search")
 print("="*80)
-# "1706.03762" is a computer science paper https://arxiv.org/abs/1706.03762 Attention Is All You Need
-result_arxiv = graph.invoke({"messages": [HumanMessage(content="1706.03762")]})
-for m in result_arxiv['messages']:
-    m.pretty_print()
+
+# Provide a query for DuckDuckGo to search on the web
+# # "1706.03762" is a computer science paper https://arxiv.org/abs/1706.03762 Attention Is All You Need
+result_ddg = graph.invoke({"messages": [HumanMessage(content="Attention Is All You Need paper summary")]})
+
+for m in result_ddg['messages']:
+    m.pretty_print()    
 
 # --- Example 2: Live Internet Search / News Query ---
 # Look for "Tool Calls: tavily_search_results_json (abc)"
@@ -202,20 +151,3 @@ result_news = graph.invoke({"messages": [HumanMessage(content="Provide me the to
 for m in result_news['messages']:
     m.pretty_print()
 
-# --- Example 3: General Knowledge / Wikipedia Query ---
-# Look for "Tool Calls: wikipedia_search (abc)"
-print("\n" + "="*80)
-print("🔍 TEST CASE 3: Invoking Graph for Wikipedia Query (Encyclopedia Lookup)")
-print("="*80)
-# Groq models perform tool calling based on system prompts injected under the hood. Override and reinforce valid JSON spacing by adding a SystemMessage or prompt instruction
-sys_msg = SystemMessage(
-    content="You are a helpful assistant. When calling tools, ensure arguments are formatted as clean, valid JSON with proper spacing."
-)
-result_wiki = graph.invoke({
-    "messages": [
-        sys_msg,
-        HumanMessage(content="What is machine learning")
-    ]
-})
-for m in result_wiki['messages']:
-    m.pretty_print()
