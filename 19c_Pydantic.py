@@ -27,11 +27,12 @@ import os
 # LangGraph and Pydantic Imports
 from langgraph.graph import StateGraph, START, END
 from pydantic import BaseModel
-
+from IPython.display import Image,display
 
 # --- State Definition ---
 # Using Pydantic's BaseModel for the State Schema.
 # This ensures runtime data validation for the graph state.
+# https://pydantic.dev/docs/validation/latest/api/pydantic/base_model/
 class State(BaseModel):
     name: str
 
@@ -57,6 +58,15 @@ builder.add_edge("example_node", END)
 
 # 4. Compile the builder into an executable graph
 graph = builder.compile()
+
+# Save the file as a PNG
+OUTPUT_IMAGE_FOLDER = "Image_PNGs"
+os.makedirs(OUTPUT_IMAGE_FOLDER, exist_ok=True)
+
+OUTPUT_IMAGE_PATH = OUTPUT_IMAGE_FOLDER + "/Pydantic1.png"
+graph.get_graph().draw_mermaid_png(output_file_path=OUTPUT_IMAGE_PATH)    
+# 2. Automatically display/open the image on macOS
+os.system(f"open {OUTPUT_IMAGE_PATH}")
 
 # --- Execution ---
 

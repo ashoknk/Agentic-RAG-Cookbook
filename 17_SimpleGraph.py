@@ -104,7 +104,7 @@ graph.add_edge("pickelball",END)
 # https://reference.langchain.com/python/langgraph/graph/state/StateGraph/compile
 graph_builder=graph.compile()
 
-# 1. Save the file as a PNG
+# Save the file as a PNG
 OUTPUT_IMAGE_FOLDER = "Image_PNGs"
 os.makedirs(OUTPUT_IMAGE_FOLDER, exist_ok=True)
 

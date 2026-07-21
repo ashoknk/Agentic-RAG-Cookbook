@@ -18,6 +18,7 @@ load_dotenv()
 
 # 1. DEFINE STATE WITH REDUCER
 # Annotated[list, add_messages] tells LangGraph to APPEND updates instead of replacing them.
+# https://docs.python.org/3/library/typing.html#typing.Annotated
 class State(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]
 

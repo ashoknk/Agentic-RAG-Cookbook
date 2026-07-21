@@ -38,7 +38,7 @@ GROQ_MODEL = "groq:openai/gpt-oss-20b"
 model = init_chat_model(GROQ_MODEL)
 
 ## 1. Define the Lightweight Schema
-# https://typing.python.org/en/latest/spec/typeddict.html
+# https://pydantic.dev/docs/validation/2.1/usage/types/types_fields/
 class ActorDict(TypedDict):
     name: str
     role: str
