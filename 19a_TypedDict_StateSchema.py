@@ -5,7 +5,6 @@ layer of a LangGraph workflow. It teaches students how state dictionaries act as
 type hints for development environments, but highlights their lack of strict data 
 validation at runtime.
 
-
 1. STATE DEFINITION: Declares a `TypedDictState` containing a user's name string 
    and a strict game option constraint (`Literal["pickeball", "soccer"]`).
 2. WORKFLOW ROUTING DESIGN: Connects an initialization play node to secondary nodes 
@@ -23,11 +22,10 @@ import random
 
 from typing import Literal
 from typing_extensions import TypedDict
-
+# https://reference.langchain.com/python/langchain-groq/chat_models/ChatGroq/with_structured_output
 
 # LangChain and LangGraph Imports
 from langgraph.graph import StateGraph, START, END
-from IPython.display import Image, display
 
 # ### State Schema With DataClasses
 # When initializing the graph with builder = StateGraph(TypedDictState), 
@@ -96,4 +94,4 @@ print(result3)
 
 # Notice how {'name': 123} passes through smoothly. This proves that if you require strict runtime
 # type enforcement (e.g., throwing an error when an integer 123 is passed for a str), 
-# you would need to use a Pydantic BaseModel or dataclasses with runtime validation instead of TypedDict
+# you would need to use a Pydantic BaseModel  with runtime validation instead of TypedDict

@@ -82,7 +82,7 @@ embedding = OpenAIEmbeddings(
 vectorstore = FAISS.from_documents(split_docs, embedding)
 retriever = vectorstore.as_retriever()
 
-retriever.invoke("What are agents")
+retriever.invoke("What is WAF")
 
 # -----------------------------
 # 2. Define RAG State
@@ -125,6 +125,15 @@ builder.add_edge("responder", END)
 graph = builder.compile()
 
 # TODO: Add diagram to display the graph
+# Save the file as a PNG
+OUTPUT_IMAGE_FOLDER = "Image_PNGs"
+os.makedirs(OUTPUT_IMAGE_FOLDER, exist_ok=True)
+
+OUTPUT_IMAGE_PATH = OUTPUT_IMAGE_FOLDER + "/24_AgenticRAG.png"
+graph.get_graph().draw_mermaid_png(output_file_path=OUTPUT_IMAGE_PATH)    
+# 2. Automatically display/open the image on macOS
+os.system(f"open {OUTPUT_IMAGE_PATH}")
+
 # -----------------------------
 # 5. Run the Agentic RAG
 # -----------------------------

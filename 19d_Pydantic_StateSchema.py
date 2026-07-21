@@ -71,6 +71,15 @@ builder_pydantic.add_edge("soccer", END)
 
 graph_pydantic = builder_pydantic.compile()
 
+# Save the file as a PNG
+OUTPUT_IMAGE_FOLDER = "Image_PNGs"
+os.makedirs(OUTPUT_IMAGE_FOLDER, exist_ok=True)
+
+OUTPUT_IMAGE_PATH = OUTPUT_IMAGE_FOLDER + "/Pydantic1.png"
+graph_pydantic.get_graph().draw_mermaid_png(output_file_path=OUTPUT_IMAGE_PATH)    
+# 2. Automatically display/open the image on macOS
+os.system(f"open {OUTPUT_IMAGE_PATH}")
+
 print("======== Using Pydantic BaseModel =========")
 print("-" * 50)
 
@@ -84,8 +93,8 @@ print(f"Result 2:\n{result_pd2}\n")
 # CRITICAL PRO-TIP DEMONSTRATION: Runtime Coercion vs Error
 # NOTE Try to change "123" to 123 . Also try str(123)
 # Pydantic catches 'name=123' and safely casts it to a string ("123") before execution!
-# result_pd3 = graph_pydantic.invoke(State(name=123))
-result_pd3 = graph_pydantic.invoke(State(name="123"))
+result_pd3 = graph_pydantic.invoke(State(name=123))
+# result_pd3 = graph_pydantic.invoke(State(name="123"))
 print(f"Result 3 (Auto-Coerced Integer):")
 print(result_pd3)
 print(f"Verified Type of 'name' parameter: {type(result_pd3['name'])}")
