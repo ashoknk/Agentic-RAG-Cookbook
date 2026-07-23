@@ -2,11 +2,19 @@
 ================================================================================
 SCRIPT PURPOSE & OVERVIEW:
 --------------------------
-This script introduces the fundamental **ReAct (Reason + Action) Agent 
-Architecture** implemented using LangGraph. The core pattern focuses on an 
-iterative execution pipeline: the model selects specific functions (Act), 
-executes them to capture telemetry (Observe), and analyzes those outcomes to 
-decide whether to run further tasks or return a terminal response (Reason).
+This script introduces the fundamental 
+**ReAct (Reason + Action) Agent Architecture** implemented using LangGraph. 
+The core pattern focuses on an iterative execution pipeline: 
+    the model selects specific functions (Act), 
+    executes them to capture telemetry (Observe), and analyzes those outcomes to 
+    decide whether to run further tasks or return a terminal response (Reason).
+
+### ReAct Agent Architecture ###
+The intuition behind ReAct, a general agent architecture.
+1. act - let the model call specific tools
+2. observe - pass the tool output back to the model
+3. reason - let the model reason about the tool output to decide what to do next 
+    (e.g., call another tool or just respond directly)
 
 
 THE CORE MECHANICS:
@@ -34,6 +42,9 @@ import warnings
 import logging
 
 from typing import Annotated
+from langgraph.graph.message import add_messages
+from langgraph.checkpoint.memory import MemorySaver
+
 from typing_extensions import TypedDict
 from dotenv import load_dotenv
 
@@ -50,30 +61,14 @@ from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_groq import ChatGroq
 from langchain_core.messages import AnyMessage, HumanMessage
 from langgraph.graph import StateGraph, START, END
-from langgraph.graph.message import add_messages
+
 from langgraph.prebuilt import ToolNode, tools_condition
-from langgraph.checkpoint.memory import MemorySaver
+from langchain_core.tools import tool
 
 # Suppress standard Python and Transformer warnings/progress logs
 warnings.filterwarnings("ignore")
 logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
 logging.getLogger("transformers").setLevel(logging.ERROR)
-
-# ### ReAct Agent Architecture
-# The intuition behind ReAct, a general agent architecture.
-# 1. act - let the model call specific tools
-# 2. observe - pass the tool output back to the model
-# 3. reason - let the model reason about the tool output to decide what to do next (e.g., call another tool or just respond directly)
-
-# Initialize Arxiv tool
-api_wrapper_arxiv = ArxivAPIWrapper(top_k_results=2, doc_content_chars_max=500)
-arxiv = ArxivQueryRun(api_wrapper=api_wrapper_arxiv)
-
-# Initialize Wikipedia tool
-api_wrapper_wiki = WikipediaAPIWrapper(top_k_results=1, doc_content_chars_max=500)
-wiki = WikipediaQueryRun(api_wrapper=api_wrapper_wiki)
-
-# NOTE : These 2 tools are used for testing purpose here tos show they are not being called when using math problems in prompt
 
 # Load environment variables
 load_dotenv()
@@ -83,7 +78,22 @@ os.environ["LANGCHAIN_API_KEY"] = os.getenv("LANGCHAIN_API_KEY")
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
 os.environ["LANGCHAIN_PROJECT"] = "ReAct-agent"
 
+# Initialize Arxiv tool
+api_wrapper_arxiv = ArxivAPIWrapper(top_k_results=2, doc_content_chars_max=500)
+arxiv = ArxivQueryRun(api_wrapper=api_wrapper_arxiv)
+
+# Initialize Wikipedia tool
+api_wrapper_wiki = WikipediaAPIWrapper(top_k_results=1, doc_content_chars_max=500)
+wiki = WikipediaQueryRun(api_wrapper=api_wrapper_wiki)
+
+#Tavily Search Tool
+tavily = TavilySearchResults()
+
+# NOTE : These tools are used for testing purpose here to show they are not being called when using math problems in prompt
+
+
 # ### Custom Functions
+@tool("add")
 def add(a: int, b: int) -> int:
     """Adds a and b.
     Args:
@@ -92,6 +102,7 @@ def add(a: int, b: int) -> int:
     """
     return a + b
 
+@tool("subtract")
 def subtract(a: int, b: int) -> int:
     """Subtracts b from a.
     Args:
@@ -100,6 +111,7 @@ def subtract(a: int, b: int) -> int:
     """
     return a - b
 
+@tool("multiply")
 def multiply(a: int, b: int) -> int:
     """Multiply a and b.
     Args:
@@ -108,6 +120,7 @@ def multiply(a: int, b: int) -> int:
     """
     return a * b
 
+@tool("divide")
 def divide(a: int, b: int) -> float:
     """Divide a and b.
     Args:
@@ -116,8 +129,6 @@ def divide(a: int, b: int) -> float:
     """
     return a / b
 
-#Tavily Search Tool
-tavily = TavilySearchResults()
 
 #Combine all the tools in the list
 tools = [arxiv, wiki, tavily, add, subtract, multiply, divide]
@@ -164,6 +175,7 @@ builder.add_conditional_edges(
     tools_condition,
 )
 builder.add_edge("tools", "tool_calling_llm")
+builder.add_edge("tools", END)
 
 
 # Agent With Memory
@@ -176,7 +188,7 @@ OUTPUT_IMAGE_FOLDER = "Image_PNGs"
 os.makedirs(OUTPUT_IMAGE_FOLDER, exist_ok=True)
 OUTPUT_IMAGE_PATH = OUTPUT_IMAGE_FOLDER + "/ChatbotsWithMultipletools.png"
 graph_memory.get_graph().draw_mermaid_png(output_file_path=OUTPUT_IMAGE_PATH)    
-# os.system(f"open {OUTPUT_IMAGE_PATH}")
+os.system(f"open {OUTPUT_IMAGE_PATH}")
 
 # Example Invocation with Memory
 config = {"configurable": {"thread_id": "1"}}
@@ -184,6 +196,7 @@ print("\n---------First Math Query  --------- ")
 input_msg = [HumanMessage(content="Add 12 and 13 and Subtract 3 from the result.")]
 output = graph_memory.invoke({"messages": input_msg}, config=config)
 
+# output['messages'][-1].pretty_print()
 for m in output['messages']:
     m.pretty_print()
 
@@ -192,6 +205,6 @@ print("\n---------Follow up Math Query  --------- ")
 # Follow-up question using memory
 follow_up = [HumanMessage(content="Add 3 to last result and then multiply by 3 from the result and then divide by 5.")]
 output_2 = graph_memory.invoke({"messages": follow_up}, config=config)
-
+# output_2['messages'][-1].pretty_print()
 for m in output_2['messages']:
     m.pretty_print()

@@ -31,12 +31,15 @@ orchestration agent that can reason, plan, use tools, and loop between nodes dyn
 """
 
 import os
-from typing import List, Annotated
+import warnings
+import logging
+
+from dotenv import load_dotenv
 from pydantic import BaseModel
+from typing import List
 
 # Set a custom User-Agent identifying your application
 os.environ["USER_AGENT"] = "Agentic-RAG-Cookbook/1.0 (contact: ash@codeaiwashnaiku.com)"
-
 
 from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import WebBaseLoader
@@ -47,8 +50,11 @@ from langchain_openai import OpenAIEmbeddings
 from langgraph.graph import StateGraph, END
 
 
-import os
-from dotenv import load_dotenv
+# Suppress standard Python and Transformer warnings/progress logs
+warnings.filterwarnings("ignore")
+logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
+logging.getLogger("transformers").setLevel(logging.ERROR)
+
 load_dotenv()
 os.environ["OPENAI_API_KEY"]=os.getenv("OPENAI_API_KEY")
 # llm=init_chat_model("openai:gpt-4o")
@@ -65,29 +71,37 @@ urls = [
     # Indusface enterprise analysis of bot mitigation mechanics
     "https://www.indusface.com/blog/top-bot-management-software/"
 ]
+
+# https://reference.langchain.com/python/langchain-community/document_loaders/web_base/WebBaseLoader 
+# WebBaseLoader document loader integration
 loaders = [WebBaseLoader(url) for url in urls]
 docs = []
 for loader in loaders:
     docs.extend(loader.load())
 
 ## Recursive character text ssplitter an vectorstore
+# https://reference.langchain.com/python/langchain-text-splitters/character/RecursiveCharacterTextSplitter
 splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
 split_docs = splitter.split_documents(docs)
 
+# https://reference.langchain.com/python/langchain-openai/embeddings/base/OpenAIEmbeddings
+# https://developers.openai.com/api/docs/models/text-embedding-3-small
+# OpenAI embedding model integration.
+EMBEDDING_MODEL = "text-embedding-3-small"
 embedding = OpenAIEmbeddings(
-    model="text-embedding-3-small",
+    model=EMBEDDING_MODEL,
     dimensions=512
 )
 
 vectorstore = FAISS.from_documents(split_docs, embedding)
 retriever = vectorstore.as_retriever()
 
-retriever.invoke("What is WAF")
+# NOTE Just for testing
+# retriever.invoke("What is WAF")
 
 # -----------------------------
 # 2. Define RAG State
 # -----------------------------
-
 class RAGState(BaseModel):
     question: str
     retrieved_docs: List[Document] = []
@@ -101,13 +115,11 @@ def retrieve_docs(state: RAGState) -> RAGState:
     docs = retriever.invoke(state.question)
     return RAGState(question=state.question, retrieved_docs=docs)
 
-def generate_answer(state: RAGState) -> RAGState:
-    
+def generate_answer(state: RAGState) -> RAGState:    
     context = "\n\n".join([doc.page_content for doc in state.retrieved_docs])
     prompt = f"Answer the question based on the context.\n\nContext:\n{context}\n\nQuestion: {state.question}"
     response = llm.invoke(prompt)
     return RAGState(question=state.question, retrieved_docs=state.retrieved_docs, answer=response.content)
-
 
 # -----------------------------
 # 4. Build LangGraph
@@ -118,13 +130,13 @@ builder = StateGraph(RAGState)
 builder.add_node("retriever", retrieve_docs)
 builder.add_node("responder", generate_answer)
 
+# `set_entry_point` is same as builder.add_edge(START, "retriever")
 builder.set_entry_point("retriever")
 builder.add_edge("retriever", "responder")
 builder.add_edge("responder", END)
 
 graph = builder.compile()
 
-# TODO: Add diagram to display the graph
 # Save the file as a PNG
 OUTPUT_IMAGE_FOLDER = "Image_PNGs"
 os.makedirs(OUTPUT_IMAGE_FOLDER, exist_ok=True)
@@ -133,6 +145,7 @@ OUTPUT_IMAGE_PATH = OUTPUT_IMAGE_FOLDER + "/24_AgenticRAG.png"
 graph.get_graph().draw_mermaid_png(output_file_path=OUTPUT_IMAGE_PATH)    
 # 2. Automatically display/open the image on macOS
 os.system(f"open {OUTPUT_IMAGE_PATH}")
+
 
 # -----------------------------
 # 5. Run the Agentic RAG

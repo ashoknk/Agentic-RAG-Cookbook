@@ -17,6 +17,7 @@ import os
 import warnings
 import logging
 from typing import Annotated
+from langgraph.graph.message import add_messages
 from typing_extensions import TypedDict
 from dotenv import load_dotenv
 
@@ -24,10 +25,10 @@ from dotenv import load_dotenv
 from langchain_community.tools import ArxivQueryRun, WikipediaQueryRun
 from langchain_community.utilities import WikipediaAPIWrapper, ArxivAPIWrapper
 from langchain_community.tools.tavily_search import TavilySearchResults
+from langgraph.checkpoint.memory import MemorySaver
 # NOTE; In future this might change to below
 # from langchain_tavily import TavilySearch
 # tavily_tool = TavilySearch(k=2)
-
 
 # Core LangChain & Model Providers
 from langchain_groq import ChatGroq
@@ -35,19 +36,15 @@ from langchain_core.messages import AnyMessage, HumanMessage, AIMessage, SystemM
 from groq import BadRequestError
 
 
-
 # LangGraph Core State Machine Utilities
 from langgraph.graph import StateGraph, START, END
-from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
-
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
 import urllib.request
 import xml.etree.ElementTree as ET
 from langchain_core.tools import tool
-
 
 # Suppress standard Python and Transformer warnings/progress logs
 warnings.filterwarnings("ignore")
@@ -56,7 +53,6 @@ logging.getLogger("transformers").setLevel(logging.ERROR)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
-
 # ==============================================================================
 # 1. INITIALIZATION: Environment Variables & Keys Setup
 # ==============================================================================
@@ -64,12 +60,12 @@ load_dotenv()
 os.environ["TAVILY_API_KEY"] = os.getenv("TAVILY_API_KEY")
 os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
 
-
 # ==============================================================================
 # 2. TOOL DEFINITIONS: Configuring Wrappers & API Frameworks
 # ==============================================================================
 
 # 2.1. ArXiv API Wrapper Setup
+# https://docs.python.org/3/library/urllib.request.html
 @tool
 def arxiv_search(query: str) -> str:
     """Search ArXiv for scientific papers using a query or paper ID (e.g., '1706.03762' or 'transformer')."""
@@ -114,8 +110,7 @@ def wikipedia_tool(query: str) -> str:
 
 # 2.2. Live Tavily Search Setup
 tavily = TavilySearchResults(max_results=1, doc_content_chars_max=500)
-# print(f"📦 Loaded Tool: ")
-# -----------------
+
 # Consolidate all instantiated search providers into a singular tools array
 # tools = [arxiv_search, wiki, tavily]
 tools = [arxiv_search, wikipedia_tool, tavily]
@@ -170,18 +165,21 @@ builder.add_conditional_edges(
 builder.add_edge("tools", END)
 
 # Compile into an executable runtime canvas
-graph = builder.compile()
+memory = MemorySaver()
+graph = builder.compile(checkpointer=memory)
+
 
 # Generate and automatically show system diagram layout on execution
 # OUTPUT_IMAGE_FOLDER = "Image_PNGs"
 # os.makedirs(OUTPUT_IMAGE_FOLDER, exist_ok=True)
-# OUTPUT_IMAGE_PATH = OUTPUT_IMAGE_FOLDER + "/ChatbotsWithMultipletools.png"
+# OUTPUT_IMAGE_PATH = OUTPUT_IMAGE_FOLDER + "/ChatbotsWithMultipletoolsb.png"
 # graph.get_graph().draw_mermaid_png(output_file_path=OUTPUT_IMAGE_PATH)    
 # os.system(f"open {OUTPUT_IMAGE_PATH}")
 
 # ==============================================================================
 # 6. RUNTIME PIPELINE EXECUTION: Testing Diverse Query Formats
 # ==============================================================================
+config = {"configurable": {"thread_id": "conversation_1"}}
 
 # --- Example 1: Academic Paper/ArXiv Query ---
 # Look for "Tool Calls: arxiv_search (abc)"
@@ -189,18 +187,22 @@ print("\n" + "="*80)
 print("📚 TEST CASE 1: Invoking Graph for Arxiv Query (Specific Paper ID)")
 print("="*80)
 # "1706.03762" is a computer science paper https://arxiv.org/abs/1706.03762 Attention Is All You Need
-result_arxiv = graph.invoke({"messages": [HumanMessage(content="1706.03762")]})
-for m in result_arxiv['messages']:
-    m.pretty_print()
+result_arxiv = graph.invoke({"messages": [HumanMessage(content="1706.03762")]}
+,config=config)
+result_arxiv['messages'][-1].pretty_print()
+# for m in result_arxiv['messages']:
+#     m.pretty_print()
 
 # --- Example 2: Live Internet Search / News Query ---
 # Look for "Tool Calls: tavily_search_results_json (abc)"
 print("\n" + "="*80)
 print("🌐 TEST CASE 2: Invoking Graph for Live News Query (Tavily Engine)")
 print("="*80)
-result_news = graph.invoke({"messages": [HumanMessage(content="Provide me the top 10 recent AI news for March 3rd 2025")]})
-for m in result_news['messages']:
-    m.pretty_print()
+result_news = graph.invoke({"messages": [HumanMessage(content="Provide me the top 10 recent AI news for March 3rd 2025")]}
+,config=config)
+result_news['messages'][-1].pretty_print()
+# for m in result_news['messages']:
+#     m.pretty_print()
 
 # --- Example 3: General Knowledge / Wikipedia Query ---
 # Look for "Tool Calls: wikipedia_search (abc)"
@@ -216,6 +218,7 @@ result_wiki = graph.invoke({
         sys_msg,
         HumanMessage(content="What is machine learning")
     ]
-})
-for m in result_wiki['messages']:
-    m.pretty_print()
+},config=config)
+result_wiki['messages'][-1].pretty_print()
+# for m in result_wiki['messages']:
+#     m.pretty_print()

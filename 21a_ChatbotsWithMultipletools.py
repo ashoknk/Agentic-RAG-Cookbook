@@ -4,8 +4,8 @@
 ================================================================================
 This script builds a multi-tool conversational AI assistant using LangGraph.
 It integrates three external lookup capabilities:
-  1. ArXiv Query Run (Academic/Scientific Papers lookup)
-  2. Tavily Search Results (Live Internet/News Search engine)
+  1. DuckDuckGoSearchRun Query Run (Academic Papers lookup)
+  2. Tavily Search Results (Recent News Search engine)
 
 The agent uses a StateGraph with a Reducer-annotated schema to remember 
 the sequential history of conversations and tool executions automatically.
@@ -20,12 +20,8 @@ from typing_extensions import TypedDict
 from dotenv import load_dotenv
 
 # LangChain Tool & Wrapper Imports
-from langchain_community.tools import  WikipediaQueryRun
-from langchain_community.utilities import WikipediaAPIWrapper
 from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_community.tools.tavily_search import TavilySearchResults
-from pydantic import BaseModel, Field
-from langchain_core.tools import tool
 
 # NOTE; In future this might change to below
 # from langchain_tavily import TavilySearch
@@ -39,6 +35,7 @@ from langchain_core.messages import AnyMessage, HumanMessage
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
+from langgraph.checkpoint.memory import MemorySaver
 
 # Suppress standard Python and Transformer warnings/progress logs
 warnings.filterwarnings("ignore")
@@ -73,11 +70,11 @@ tools = [ddg_search, tavily]
 # ==============================================================================
 # 3. LLM BINDING: Coupling Tools to the LLM Schema Interface
 # ==============================================================================
-GROQ_MODEL = "llama-3.1-8b-instant"
+
 # GROQ_MODEL = "llama-3.3-70b-versatile" # NOTE - Try with this model if it helps
+GROQ_MODEL = "llama-3.1-8b-instant"
 # With small/fast models like llama-3.1-8b-instant, randomness often causes the LLM to output 
 # malformed JSON, missing parameter keys, or invalid tags
-
 
 # temperature=0 is one way to reduce tool-calling errors when working with Groq and LangGraph.
 llm = ChatGroq(model=GROQ_MODEL, temperature=0)
@@ -116,7 +113,9 @@ builder.add_conditional_edges(
 builder.add_edge("tools", END)
 
 # Compile into an executable runtime canvas
-graph = builder.compile()
+memory = MemorySaver()
+graph = builder.compile(checkpointer=memory)
+# graph = builder.compile()
 
 # Generate and automatically show system diagram layout on execution
 OUTPUT_IMAGE_FOLDER = "Image_PNGs"
@@ -125,29 +124,36 @@ OUTPUT_IMAGE_PATH = OUTPUT_IMAGE_FOLDER + "/ChatbotsWithMultipletools.png"
 graph.get_graph().draw_mermaid_png(output_file_path=OUTPUT_IMAGE_PATH)    
 os.system(f"open {OUTPUT_IMAGE_PATH}")
 
+
 # ==============================================================================
 # 6. RUNTIME PIPELINE EXECUTION: Testing Diverse Query Formats
 # ==============================================================================
+config = {"configurable": {"thread_id": "conversation_1"}}
 
-# --- Example 1: Web Search / DuckDuckGo Query ---
+# --- Example 1: Web Search  Query ---
 # Look for "Tool Calls: duckduckgo_search (abc)"
 print("\n" + "="*80)
 print("🔍 TEST CASE 1: Invoking Graph for DuckDuckGo Search")
 print("="*80)
 
 # Provide a query for DuckDuckGo to search on the web
-# # "1706.03762" is a computer science paper https://arxiv.org/abs/1706.03762 Attention Is All You Need
-result_ddg = graph.invoke({"messages": [HumanMessage(content="Attention Is All You Need paper summary")]})
+# "1706.03762" is a computer science paper https://arxiv.org/abs/1706.03762 Attention Is All You Need
+result_ddg = graph.invoke(
+    {"messages": [HumanMessage(content="Attention Is All You Need paper summary")]}
+    ,config=config)
 
-for m in result_ddg['messages']:
-    m.pretty_print()    
+# for m in result_ddg['messages']:
+#     m.pretty_print()    
+result_ddg['messages'][-1].pretty_print()
 
 # --- Example 2: Live Internet Search / News Query ---
 # Look for "Tool Calls: tavily_search_results_json (abc)"
 print("\n" + "="*80)
 print("🌐 TEST CASE 2: Invoking Graph for Live News Query (Tavily Engine)")
 print("="*80)
-result_news = graph.invoke({"messages": [HumanMessage(content="Provide me the top 10 recent AI news for March 3rd 2025")]})
-for m in result_news['messages']:
-    m.pretty_print()
-
+result_news = graph.invoke(
+    {"messages": [HumanMessage(content="Provide me the top 10 recent AI news for March 3rd 2025")]}
+    ,config=config)
+# for m in result_news['messages']:
+#     m.pretty_print()
+result_news['messages'][-1].pretty_print()
