@@ -1,0 +1,6 @@
+Retrieval-Augmented Generation (RAG) Architecture
+
+        Retrieval-Augmented Generation (RAG) is a design pattern that optimizes the output of a Large Language Model (LLM) by referencing an authoritative, external knowledge base before generating a response. Standard LLMs suffer from static training data, temporal cutoffs, and a tendency to hallucinate facts when they lack information.
+        RAG solves this by decoupling the model's parametric memory (what it learned during training) from its non-parametric memory (the external vector store).
+        The standard RAG pipeline operates in three distinct phases: ingestion, retrieval, and generation. During ingestion, source documents are broken into chunks, embedded into vectors, and stored in a vector database.
+        When a user submits a query, the retrieval system converts the query into an embedding, searches the vector store for the most contextually relevant chunks, and pulls them. Finally, during generation, the retrieved chunks are stuffed into the prompt alongside the user's original question, giving the LLM the exact context it needs to write an accurate, grounded answer.

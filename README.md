@@ -234,7 +234,7 @@ Instead of hardcoding provider classes like `ChatOpenAI` or `ChatAnthropic`, scr
 from langchain.chat_models import init_chat_model
 
 # Swapping providers at runtime is as simple as updating string parameters
-model = init_chat_model("groq:qwen/qwen3-32b", temperature=0)
+model = init_chat_model("groq:qwen/qwen3.6-27b", temperature=0)
 ```
 
 ### Streaming Architectures (`25b_Streaming.py`)

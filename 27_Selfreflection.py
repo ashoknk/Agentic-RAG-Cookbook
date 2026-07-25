@@ -5,6 +5,11 @@ Concept:
 In Self-Reflection RAG, the agent generates an answer and then "reflects" on it. 
 It checks if the answer actually answers the question or if it needs more information. 
 If it's not good enough, it loops back to perform another search or refine the answer.
+
+1. Document Grader   ──>  Catches RETRIEVAL Failures (Irrelevant Data) ex. 25d_AgenticRAG_Grader.py
+2. Answer Reflector  ──>  Catches GENERATION Failures (Hallucinations / Incomplete Answers) ex.27_Selfreflection.py this code
+    Catches cases where the retrieved documents were good, but the LLM failed to synthesize them properly 
+    (e.g., it missed a key part of a multi-part question, hallucinated details, or gave an overly vague response)
 """
 
 import os
@@ -13,7 +18,6 @@ from dotenv import load_dotenv
 
 # Set a custom User-Agent identifying your application
 os.environ["USER_AGENT"] = "Agentic-RAG-Cookbook/1.0 (contact: ash@codeaiwashnaiku.com)"
-
 
 from pydantic import BaseModel
 from langchain_openai import OpenAIEmbeddings
@@ -49,6 +53,7 @@ retriever = vectorstore.as_retriever()
 
 
 # ### 1. Define the State
+# In Pydantic:Objects are instance-based data models.
 class RAGReflectionState(BaseModel):
     question: str
     retrieved_docs: List[Document] = []
@@ -59,6 +64,9 @@ class RAGReflectionState(BaseModel):
 
 
 # ### 2. Define the Nodes
+
+# `model_copy` preserves immutability and ensures that LangGraph correctly tracks state transitions 
+# from node to node without modifying history in unexpected ways
 
 # #### Node 1: Retriever
 def retrieve_docs(state: RAGReflectionState) -> RAGReflectionState:
@@ -73,12 +81,8 @@ def generate_answer(state: RAGReflectionState) -> RAGReflectionState:
     context = "\n\n".join([doc.page_content for doc in state.retrieved_docs])
     prompt = f"""
 Use the following context to answer the question:
-
-Context:
-{context}
-
-Question:
-{state.question}
+Context:{context}
+Question:{state.question}
 """
     answer = llm.invoke(prompt).content.strip()
     return state.model_copy(update={"answer": answer, "attempts": state.attempts + 1})
@@ -116,7 +120,7 @@ builder = StateGraph(RAGReflectionState)
 
 # Add Nodes
 builder.add_node("retriever", retrieve_docs)
-builder.add_node("responder", generate_answer)
+builder.add_node("generator", generate_answer)
 builder.add_node("reflector", reflect_on_answer)
 builder.add_node("done", finalize)
 
@@ -124,13 +128,17 @@ builder.add_node("done", finalize)
 builder.set_entry_point("retriever")
 
 # Define Workflow Edges
-builder.add_edge("retriever", "responder")
-builder.add_edge("responder", "reflector")
+builder.add_edge("retriever", "generator")
+builder.add_edge("generator", "reflector")
 
 # Define Conditional Routing based on Reflection Result and Max Attempts
 builder.add_conditional_edges(
     "reflector",
-    lambda s: "done" if not s.revised or s.attempts >= 2 else "retriever"
+    lambda s: "done" if not s.revised or s.attempts >= 2 else "retriever",
+    {
+        "done": "done",         # Tells LangGraph: "done" string maps to "done" node
+        "retriever": "retriever" # Tells LangGraph: "retriever" string maps to "retriever" node
+    }
 )
 
 builder.add_edge("done", END)

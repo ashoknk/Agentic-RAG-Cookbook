@@ -6,5 +6,12 @@
 .venv
 dotenv.txt
 
+# Ignore all vector databases generated 
+faiss_*
+chroma_db*
+
 # Optional: If you want to make sure your .gitignore file itself is NOT ignored
 !.gitignore
+
+uv.lock 
+

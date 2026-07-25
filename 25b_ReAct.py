@@ -1,25 +1,8 @@
 """
-React_agent_multi_source (Enterprise/Advanced Routing)
-Goal: 
-    Show how a ReAct agent scales when given a massive, mixed toolkit (RAG + Academic Search + Corporate Docs).
-
-What it contains: 
-    Your generic make_retriever_tool_from_text helper, the ArxivLoader, and the local file tools (INTERNAL_DOCS_PATH, RESEARCH_NOTES_PATH).
-
-Core Lesson: 
-    Focus on tool descriptions. Show how the LLM dynamically evaluates semantic descriptions to route questions between 
-    highly specific technical repositories versus academic papers.
-    
-Educational Goal: 
-    Focuses on routing decisions across highly specific custom sources. It abstraction-loads separate local documentation assets 
-    and academic endpoints (ArxivLoader), showcasing how  agent acts as an enterprise traffic router based purely on tool descriptions.
-    """
-
-
-
-"""
 ### 🤖 Advanced ReAct with LangGraph - Multi-Source Corporate Routing
-Demonstrates how a ReAct agent dynamically evaluates semantic tool descriptions 
+
+Goal: 
+    Demonstrates how a ReAct agent dynamically evaluates semantic tool descriptions 
 to pick between proprietary internal docs, technical research notes, or global academic indexes.
 
 In 25a, we built our foundational ReAct agent. Think of it like creating a simple personal assistant. 
@@ -213,16 +196,5 @@ if __name__ == "__main__":
     state = {"messages": [HumanMessage(content=user_question)]}
     result = graph.invoke(state, config=config)
     
-    # NOTE: Uncomment the following lines to run individual questions w/o ArXiv papers
-    # config = {"configurable": {"thread_id": "session_2"}}
-    # # Question 1 (Technical/Private Docs): 
-    # user_question1 = "Why do legacy regex-based WAF filters suffer from high latency and CPU spikes when trying to block rotated User-Agents?"
-    # state = {"messages": [HumanMessage(content=user_question1)]}
-    # result = graph.invoke(state, config=config)
-
-    # # Question 2 (Business/Public Docs): 
-    # user_question2 =  "How does Fastly's Next-Gen WAF eliminate false positives to help DevOps and security teams scale business operations?"
-    # state = {"messages": [HumanMessage(content=user_question2)]}
-    # result = graph.invoke(state, config=config)
 
     print("\n✅ Final Answer:\n", result["messages"][-1].content)

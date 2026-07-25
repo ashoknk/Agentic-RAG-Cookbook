@@ -15,6 +15,11 @@ It's like reverse-engineering a question into manageable steps before answering.
 - ✅ Combine all retrieved contexts
 - ✅ Generate a final consolidated answer
 
+[CoT-RAG (26_COTRag.py)]
+Complex Query ──> Planner (Compresses into 1 Unified Search String) ──> Single Search (Tavily) ──> Final Synthesis
+
+[Query Decomposition (This file)]
+Complex Query ──> Planner (Splits into 2-3 Distinct Sub-Questions) ──> Multiple Sequential Searches (FAISS) ──> Consolidated Synthesis
 """
 
 import os
@@ -111,8 +116,7 @@ def generate_final_answer(state: RAGState) -> RAGState:
     prompt = f"""
 Use the context below to answer the question.
 
-Context:
-{context}
+Context:{context}
 
 Question: {state.question}
 """
@@ -127,12 +131,12 @@ builder = StateGraph(RAGState)
 
 builder.add_node("planner", plan_query)
 builder.add_node("retriever", retrieve_for_each)
-builder.add_node("responder", generate_final_answer)
+builder.add_node("generator", generate_final_answer)
 
 builder.set_entry_point("planner")
 builder.add_edge("planner", "retriever")
-builder.add_edge("retriever", "responder")
-builder.add_edge("responder", END)
+builder.add_edge("retriever", "generator")
+builder.add_edge("generator", END)
 
 graph = builder.compile()
 
