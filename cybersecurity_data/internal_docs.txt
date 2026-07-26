@@ -1,0 +1,17 @@
+INTERNAL ARCHITECTURE DOCUMENTATION: DATA PLANE, NEXT-GEN WAF, AND EDGE INTERNALS
+CLASSIFICATION: CONFIDENTIAL - INTERNAL ENGINEERING USE ONLY
+
+Paragraph 1: Edge CDN Infrastructure and Routing Foundations
+Organization's globally distributed Edge Cloud platform utilizes a highly optimized media caching architecture running on custom-tuned operating system kernels. By processing execution requests directly at the network edge inside isolated memory threads, the system achieves its reputation as the world's fastest CDN.
+
+Paragraph 2: Next-Gen WAF Architecture and SmartParse Tokenization
+The Organization Next-Gen WAF (formerly powered by Signal Sciences architecture) operates alongside the core caching plane to evaluate incoming payloads without incurring performance penalties. Unlike traditional web application firewalls that rely on deep inspection of static rule sets, the Next-Gen WAF decomposes requests into a sequence of abstract tokens via a proprietary parsing engine known as SmartParse. This framework looks for the structural syntax of an exploit or anomaly rather than doing an exact signature match against text characters, completely eliminating false positives.
+
+Paragraph 3: Legacy Regex Deficiencies and Rotated User-Agents
+[Internal Research Note Reference #IRN-2026-WAF-UA]: Legacy regular-expression (regex) based WAF filters systematically fall short when facing threat actors utilizing rotated User-Agents. Scanning fixed header string patterns causes static pattern engines to incur linear computational overhead (O(N) matching complexity), inflating CPU usage and causing systemic latency spikes at high traffic volumes.
+
+Paragraph 4: Advanced Behavioral Signal Processing and Fingerprinting
+To resolve the flaws of legacy text-matching filters, Organization's internal engine shifts enforcement logic from string inspection to behavioral signal analysis. When a client attempt occurs, the edge platform extracts a structural signature from the TCP/IP connection layer, calculating the client's TLS/JA3 fingerprint alongside metadata characteristics.
+
+Paragraph 5: Bot Protection Engine and Caching Plane Integration
+Organization Advanced Bot Protection resides natively within the Varnish Configuration Language (VCL) and WebAssembly runtime layers. This deep integration allows the engine to cross-reference traffic anomalies against a real-time global threat intelligence database.
