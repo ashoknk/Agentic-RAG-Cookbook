@@ -7,12 +7,13 @@ It checks if the answer actually answers the question or if it needs more inform
 If it's not good enough, it loops back to perform another search or refine the answer.
 
 1. Document Grader   ──>  Catches RETRIEVAL Failures (Irrelevant Data) ex. 25d_AgenticRAG_Grader.py
-2. Answer Reflector  ──>  Catches GENERATION Failures (Hallucinations / Incomplete Answers) ex.27_Selfreflection.py this code
+2. Answer Reflector  ──>  Catches GENERATION Failures (Hallucinations / Incomplete Answers) ex. this code
     Catches cases where the retrieved documents were good, but the LLM failed to synthesize them properly 
     (e.g., it missed a key part of a multi-part question, hallucinated details, or gave an overly vague response)
 """
 
 import os
+import warnings
 from typing import List
 from dotenv import load_dotenv
 
@@ -27,9 +28,8 @@ from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import TextLoader
 from langchain.chat_models import init_chat_model
 from langgraph.graph import StateGraph, END
-
-import warnings
 from langchain_core._api.deprecation import LangChainPendingDeprecationWarning
+
 # Suppress the specific LangChain serialization warning
 warnings.filterwarnings("ignore", category=LangChainPendingDeprecationWarning)
 
@@ -64,7 +64,6 @@ class RAGReflectionState(BaseModel):
 
 
 # ### 2. Define the Nodes
-
 # `model_copy` preserves immutability and ensures that LangGraph correctly tracks state transitions 
 # from node to node without modifying history in unexpected ways
 
@@ -104,8 +103,10 @@ Reflection: YES or NO
 Explanation: ...
 """
     result = llm.invoke(prompt).content
+    # If the answer is good, is_ok evaluates to True
     is_ok = "reflection: yes" in result.lower()
     print(f"🔍 [Reflector Decision] Is the answer sufficient? {'YES' if is_ok else 'NO'}")
+    # is_ok = TRUE --> not is_ok = False -> No revision needed -> Graph proceeds to "done"
     return state.model_copy(update={"reflection": result, "revised": not is_ok})
 
 
@@ -124,7 +125,7 @@ builder.add_node("generator", generate_answer)
 builder.add_node("reflector", reflect_on_answer)
 builder.add_node("done", finalize)
 
-# Set Graph Entry Point
+# Set Graph Entry Point START
 builder.set_entry_point("retriever")
 
 # Define Workflow Edges
@@ -157,7 +158,7 @@ graph.get_graph().draw_mermaid_png(output_file_path=OUTPUT_IMAGE_PATH)
 if __name__ == "__main__":
     # user_query = "How does Fastly's proprietary tokenization engine fix the linear computational complexity and latency spikes associated with tracking randomized text strings?"
     # user_query = "What specific cryptographic puzzles does Fastly use to mitigate the O(N) matching complexity caused by legacy regex filters?"
-    # user_query = "How does Fastly leverage the linear matching complexity of static regex patterns to insulate origin servers from resource exhaustion?"
+    
     user_query = "How does Fastly leverage the linear matching complexity of static regex filters to isolate origin infrastructure from resource exhaustion?"
     init_state = RAGReflectionState(question=user_query)
     

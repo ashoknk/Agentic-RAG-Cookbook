@@ -1,126 +1,136 @@
 """
-Instead of using raw functions like we did in the previous step, or a rigid text chain, the modern LangChain 
-way to build this is to wrap your retrieval and prompt creation into clean Runnables.
+MultimodalOpenAI Part C
+================================================================================
+DIFFERENCES IN 15c_MultimodalOpenAI.py vs. 15b_MultimodalOpenAI.py
+================================================================================
 
-By using RunnableLambda, you get all the benefits of LangChain's chaining system 
-(streaming, logging, tracing, and clean structure), but you retain complete control over 
-building your custom base64 image strings and message structures before they land inside your Vision LLM!
+1. REMOVAL OF LOCAL HEAVY MODELS (CLIP & PYTORCH):
+   - 15b used a local Hugging Face CLIP model (CLIPModel, CLIPProcessor, torch, 
+     embed_image(), embed_text(), CLIPLangChainEmbeddings) to generate vector 
+     embeddings directly from image pixels.
+   - 15c completely removes PyTorch, Transformers, and CLIP. It uses cloud-based 
+     OpenAI text embeddings (OpenAIEmbeddings) instead.
+
+2. INGESTION & INDEXING STRATEGY (TEXT PROXY vs. VISUAL EMBEDDINGS):
+   - 15b embedded the image pixels into a CLIP visual vector space and indexed 
+     the visual vector into FAISS using FAISS.from_embeddings().
+   - 15c sends the image to `gpt` during ingestion to generate a detailed 
+     text summary. It then embeds this TEXT summary into FAISS using standard 
+     text-to-text indexing (FAISS.from_documents()).
+
+3. SIMILARITY SEARCH EXECUTION:
+   - 15b performed `vector_store.similarity_search_by_vector()` by converting 
+     the text query into a CLIP vector to match visual vectors.
+   - 15c performs `vector_store.similarity_search()` using standard text-to-text 
+     semantic search between the user query and the LLM-generated image summary.
+
+================================================================================
+SIMILAR PARTS 
+================================================================================
+- Image to Base64 conversion logic for OpenAI Vision payload.
+- `format_multimodal_prompt()` structure (retrieves image_id from metadata and 
+  appends image_url base64 block to HumanMessage).
+- LCEL Chain architecture (`RunnableLambda(format_multimodal_prompt) | llm | StrOutputParser()`).
+- The `__main__` execution block and query list.
+================================================================================
 """
+
 import os
 import base64
 import io
 import warnings
+
+from huggingface_hub import utils
+utils.disable_progress_bars()
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 from dotenv import load_dotenv
-from PIL import Image
-import numpy as np
-import torch
-from transformers import CLIPProcessor, CLIPModel
+# from PIL import Image
+
+# Import purely from LangChain and LangChain-OpenAI
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.documents import Document
-from langchain_core.embeddings import Embeddings
 from langchain_community.vectorstores import FAISS
 from langchain_core.messages import HumanMessage
-from langchain.chat_models import init_chat_model
-
-# Import standard LCEL runnables and output parsers
 from langchain_core.runnables import RunnableLambda
 from langchain_core.output_parsers import StrOutputParser
 
 # Clean up console logs
 warnings.filterwarnings("ignore")
-os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
 
 load_dotenv()
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
-if os.getenv("HF_TOKEN"):
-    os.environ["HF_TOKEN"] = os.getenv("HF_TOKEN")
 
 # ==============================================================================
-# 1. INITIALIZE CLIP MODEL
+# 1. INITIALIZE OPENAI MODELS (No Torch, No Local Models!)
 # ==============================================================================
-CLIP_MODEL = "openai/clip-vit-base-patch32"
-clip_model = CLIPModel.from_pretrained(CLIP_MODEL)
-clip_processor = CLIPProcessor.from_pretrained(CLIP_MODEL)
-clip_model.eval()
+# Use standard OpenAI text embeddings for our Vector DB indexing ==>
+embeddings_model = OpenAIEmbeddings(model="text-embedding-3-small")
 
-def embed_image(pil_image):
-    """Generate normalized vector embedding for an image using CLIP"""
-    inputs = clip_processor(images=pil_image, return_tensors="pt")
-    with torch.no_grad():
-        outputs = clip_model.get_image_features(**inputs)
-        features = outputs.pooler_output if hasattr(outputs, 'pooler_output') else outputs
-        features = features / features.norm(dim=-1, keepdim=True)
-        return features.squeeze().numpy()
-
-def embed_text(text):
-    """Generate normalized vector embedding for a text string using CLIP"""
-    inputs = clip_processor(text=text, return_tensors="pt", padding=True, truncation=True, max_length=77)
-    with torch.no_grad():
-        outputs = clip_model.get_text_features(**inputs)
-        features = outputs.pooler_output if hasattr(outputs, 'pooler_output') else outputs
-        features = features / features.norm(dim=-1, keepdim=True)
-        return features.squeeze().numpy()
-
-class CLIPLangChainEmbeddings(Embeddings):
-    """Bridge wrapper to allow FAISS database queries via CLIP embeddings"""
-    def embed_documents(self, texts: list[str]) -> list[list[float]]:
-        return [embed_text(t).tolist() for t in texts]
-               
-    def embed_query(self, text: str) -> list[float]:
-        return embed_text(text).tolist()
+# Initialize the ChatOpenAI Model for both Summarization and Final Visual Analysis
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+# llm = init_chat_model("openai:gpt-4o-mini") 
 
 # ==============================================================================
-# 2. SOURCE INGESTION & VECTOR STORE INDEXING
+# 2. SOURCE INGESTION & TEXT-SUMMARIZATION INDEXING
 # ==============================================================================
-IMAGE_PATH = "01_top_sources.png"  # Your source chart image
+IMAGE_PATH = "data/01_top_sources.png"  # Your source chart image
 image_data_store = {}              # In-memory dictionary to hold base64 data for the LLM
+image_id = "01_top_sources"
 
-# 2a. Open and process the target image
-pil_image = Image.open(IMAGE_PATH).convert("RGB")
-image_id = "data/top_ip_sources_chart"
+# 2a. Convert the PNG image to Base64 using standard Python libraries
+# Much Faster: No image processing or decoding/re-encoding overhead.
+# The Base64 string will match whatever file format ex.png was saved in on disk
+with open(IMAGE_PATH, "rb") as image_file:
+    base64_string = base64.b64encode(image_file.read()).decode("utf-8")
+    image_data_store[image_id] = base64_string
 
-# 2b. Convert image to Base64 (Required format for sending images to OpenAI Vision models)
-buffered = io.BytesIO()
-pil_image.save(buffered, format="PNG")
-image_data_store[image_id] = base64.b64encode(buffered.getvalue()).decode()
+# 2b. Generating an Image Summary via API (Instead of local CLIP embedding)
+print("1. Sending image to OpenAI for an ingestion summary...")
+summarize_message = HumanMessage(
+    content=[
+        {"type": "text", "text": "Describe this chart in detail. List key metrics, titles, data points, IP addresses, and labels visible so it can be indexed for search queries later."},
+        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{base64_string}"}}
+    ]
+)
 
-# 2c. Embed image with CLIP and wrap inside a LangChain Document structure
-img_embedding = embed_image(pil_image)
+# sends the image to `llm to generate a detailed text summary
+image_summary = llm.invoke([summarize_message]).content
+print(f"Generated Ingestion Summary:\n{image_summary}\n")
+
+# 2c. Pack the image summary into a Document and index it into FAISS
+# The vector database will index the TEXT summary, but retain the metadata linking to the image!
 image_document = Document(
-    page_content=f"[Image content covering network request metrics: {image_id}]",
+    page_content=image_summary,
     metadata={"type": "image", "image_id": image_id}
 )
 
-# 2d. Ingest into the vector database
-vector_store = FAISS.from_embeddings(
-    text_embeddings=[(image_document.page_content, img_embedding)],
-    embedding=CLIPLangChainEmbeddings(),
-    metadatas=[image_document.metadata]
+# Embed this summary Document into FAISS using standard ==>
+vector_store = FAISS.from_documents(
+    documents=[image_document],
+    embedding=embeddings_model
 )
 
 # ==============================================================================
 # 3. RUNNABLE COMPONENT & LCEL CHAIN PIPELINE
 # ==============================================================================
-# Initialize the Vision LLM
-llm = init_chat_model("openai:gpt-4o-mini")
-
 def format_multimodal_prompt(input_dict):
     """
-    Accepts an input dictionary with a 'question' key. 
-    Retrieves matching visual context and constructs a list containing a HumanMessage.
+    Accepts user query, queries the text-based vector store, 
+    and returns a formatted HumanMessage payload with the original image attached.
     """
     query = input_dict["question"]
     
-    # Step A: Query vector database using the custom CLIP embedding logic
-    query_embedding = embed_text(query)
-    retrieved_docs = vector_store.similarity_search_by_vector(embedding=query_embedding, k=1)
+    # Step A: Query vector database using regular text embeddings ==>
+    retrieved_docs = vector_store.similarity_search(query, k=1)
     
-    # Step B: Construct standard text query block
+    # Step B: Construct standard text question block
     message_content = [{
         "type": "text", 
         "text": f"Question: {query}\n\nPlease analyze the provided chart image and answer the question accurately."
     }]
     
-    # Step C: Inject any corresponding images as structured base64 blocks 
+    # Step C: Match the retrieved text summary back to the raw image payload
     for doc in retrieved_docs:
         img_id = doc.metadata.get("image_id")
         if img_id in image_data_store:
@@ -129,11 +139,9 @@ def format_multimodal_prompt(input_dict):
                 "image_url": {"url": f"data:image/png;base64,{image_data_store[img_id]}"}
             })
             
-    # Return the message structured within a format the ChatModel accepts
     return [HumanMessage(content=message_content)]
 
 # --- Modern LCEL Multimodal Chain Structure ---
-# RunnableLambda wraps our custom retrieval/formatting function cleanly into the pipeline.
 multimodal_rag_chain = (
     RunnableLambda(format_multimodal_prompt)
     | llm
@@ -154,7 +162,6 @@ if __name__ == "__main__":
         print(f"\nQuery: {query}")
         print("-" * 60)
         
-        # Format the query as a dictionary to flow correctly into our chain
         query_dict = {"question": query}
         answer = multimodal_rag_chain.invoke(query_dict)
         

@@ -1,62 +1,80 @@
 """
 ================================================================================
-MAIN GOAL:
+
 This script implements an advanced Hierarchical Agent Teams pattern. It orchestrates nested 
 subgraphs (a Research Team subgraph and a Writing Team subgraph) coordinated by a top-level Root Supervisor.
-This architecture is highly scalable and handles complex multi-stage tasks (researching, outline creation, 
-document writing, python chart generation).
+This architecture is highly scalable and handles complex multi-stage tasks 
+(researching, outline creation, document writing, python chart generation).
 
-HOW THIS CODE DIFFERS FROM FLAT SUPERVISOR (`supervisor_rag.py`):
-1. Hierarchical Nesting vs. Flat Delegation: File 2 uses a single flat supervisor coordinating individual 
-   agents. This file uses a supervisor that coordinates entire *subgraphs* (teams), each of which 
-   has its own internal supervisor managing sub-agents.
-2. Local Tool Integration and File Sharing: It integrates local filesystem state management (reading, writing, 
-   and editing documents) and dynamic code execution (Python REPL) shared among sub-agents.
-3. Manual Subgraph Invocation: Shows how subgraphs are wrapped as standard LangGraph nodes 
+HOW THIS CODE DIFFERS FROM FLAT SUPERVISOR (`30b_Multiagent_Supervisor.py`):
+1. Hierarchical Nesting vs. Flat Delegation: 
+    a. 30b_Multiagent_Supervisor.py a single flat supervisor coordinating individual agents. 
+    b. This file uses a supervisor that coordinates entire *subgraphs* (teams), 
+    each of which has its own internal supervisor managing sub-agents.
+2. Local Tool Integration and File Sharing: 
+    It integrates local filesystem state management (reading, writing, and editing documents) and 
+    dynamic code execution (Python REPL) shared among sub-agents.
+3. Manual Subgraph Invocation: 
+    Shows how subgraphs are wrapped as standard LangGraph nodes 
    (`research_graph.invoke` and `paper_writing_graph.invoke`) to pass state cleanly across team boundaries.
+
+
+┌────────────────────────────────────────────────────────────────────────┐
+│                             super_builder                              │
+│                                                                        │
+│                       ┌──────────────────────┐                         │
+│                       │   teams_supervisor   │                         │
+│                       └──────────┬───────────┘                         │
+│                                  │                                     │
+│               ┌──────────────────┴──────────────────┐                  │
+│               ▼                                     ▼                  │
+│   ┌───────────────────────┐             ┌───────────────────────┐      │
+│   │  call_research_team   │             │call_paper_writing_team│      │
+│   │        (Node)         │             │        (Node)         │      │
+│   └───────────┬───────────┘             └───────────┬───────────┘      │
+│               │                                     │                  │
+└───────────────┼─────────────────────────────────────┼──────────────────┘
+                │ (Invokes)                           │ (Invokes)
+                ▼                                     ▼
+     ┌─────────────────────┐               ┌─────────────────────┐
+     │   research_graph    │               │ paper_writing_graph │
+     │     (Subgraph)      │               │     (Subgraph)      │
+     └─────────────────────┘               └─────────────────────┘   
 ================================================================================
 """
 
 import os
+import io
+import sys
+from dotenv import load_dotenv
+
+os.environ["USER_AGENT"] = "Agentic-RAG-Cookbook/1.0 (contact: ash@codeaiwashnaiku.com)"
+
 from typing import Annotated, Dict, List, Literal, Optional
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing_extensions import TypedDict
-from dotenv import load_dotenv
 
 from langchain.chat_models import init_chat_model
-from langchain.agents import Tool
+from langchain_core.tools import Tool
+from langchain_core.tools import tool
 from langchain_tavily import TavilySearch
 from langchain_community.document_loaders import WebBaseLoader
-from langchain_experimental.utilities import PythonREPL
+from langchain_community.document_loaders import TextLoader
 from langchain_openai import OpenAIEmbeddings
-from langchain.document_loaders import TextLoader
-from langchain.vectorstores import FAISS
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import FAISS
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.messages import HumanMessage, BaseMessage
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.tools import tool
 
-from langgraph.prebuilt import create_react_agent
+from langchain.agents import create_agent
 from langgraph.graph import StateGraph, MessagesState, START, END
 from langgraph.types import Command
 
 # Load environment variables
 load_dotenv()
-
-# Secure credential assignments
 os.environ["TAVILY_API_KEY"] = os.getenv("TAVILY_API_KEY", "your-tavily-key")
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY", "your-openai-key")
-
-# Setup dummy file for retriever if it does not exist
-if not os.path.exists("internal_docs.txt"):
-    with open("internal_docs.txt", "w", encoding="utf-8") as f:
-        f.write(
-            "Title: Transformer Variants for Production\n"
-            "We have used the following transformer variants in production deployments:\n"
-            "1. EfficientFormer: Optimized for mobile inference.\n"
-            "2. Reformer: Tested for memory efficiency on embedded devices.\n"
-        )
 
 # Initialize Chat Model
 llm = init_chat_model("openai:gpt-4o-mini")
@@ -81,10 +99,10 @@ def make_retriever_tool_from_text(file, name, desc):
 
     return Tool(name=name, description=desc, func=tool_func)
 
-
+FILE_NAME = "cybersecurity_data/internal_docs.txt"
 internal_tool_1 = make_retriever_tool_from_text(
-    "internal_docs.txt",
-    "InternalResearchNotes",
+    FILE_NAME,
+    "CyberSecurityResearchNotes",
     "Search internal research notes for experimental results",
 )
 
@@ -170,20 +188,28 @@ def read_document(
     return "\n".join(lines[start:end])
 
 
-repl = PythonREPL()
-
 
 @tool
 def python_repl_tool(
     code: Annotated[str, "The python code to execute to generate your chart."],
-):
+) -> str:
     """Use this to execute python code. If you want to see the output of a value,
     you should print it out with `print(...)`. This is visible to the user."""
+    
+    # Capture standard output (what print() statements write to)
+    old_stdout = sys.stdout
+    redirected_output = sys.stdout = io.StringIO()
+    
     try:
-        result = repl.run(code)
+        # Execute the code in a global/local dictionary context
+        exec(code, {}, {})
+        sys.stdout = old_stdout  # Restore standard output
+        result = redirected_output.getvalue()
+        return f"Successfully executed:\n{result}"
+        
     except BaseException as e:
+        sys.stdout = old_stdout  # Restore standard output even if it fails
         return f"Failed to execute. Error: {repr(e)}"
-    return f"Successfully executed:\n{result}"
 
 
 # --- HIERARCHICAL STATE & SUPERVISOR BUILDER ---
@@ -221,7 +247,7 @@ def make_supervisor_node(llm: BaseChatModel, members: list[str]) -> str:
 
 
 # --- RESEARCH TEAM SUBGRAPH ---
-team_search_agent = create_react_agent(llm, tools=[tavily_tool, internal_tool_1])
+team_search_agent = create_agent(llm, tools=[tavily_tool, internal_tool_1])
 
 
 def search_node(state: State) -> Command[Literal["supervisor"]]:
@@ -236,7 +262,7 @@ def search_node(state: State) -> Command[Literal["supervisor"]]:
     )
 
 
-web_scraper_agent = create_react_agent(llm, tools=[scrape_webpages])
+web_scraper_agent = create_agent(llm, tools=[scrape_webpages])
 
 
 def web_scraper_node(state: State) -> Command[Literal["supervisor"]]:
@@ -262,12 +288,26 @@ research_builder.add_node("web_scraper", web_scraper_node)
 research_builder.add_edge(START, "supervisor")
 research_graph = research_builder.compile()
 
+# Save the file as a PNG
+OUTPUT_IMAGE_PATH = "Image_PNGs/30a_research_team.png"
+research_graph.get_graph().draw_mermaid_png(output_file_path=OUTPUT_IMAGE_PATH)    
+os.system(f"open {OUTPUT_IMAGE_PATH}")
+
+
+# 1. RESEARCH TEAM SUBGRAPH (30a_research_team.png)
+# __start__ ---> supervisor                      [Static edge via add_edge(START, "supervisor")]
+# supervisor ---> search                         [Dynamic edge via Command(goto="search")]
+# supervisor ---> web_scraper                    [Dynamic edge via Command(goto="web_scraper")]
+# supervisor ---> __end__                        [Dynamic edge via Command(goto=END)]
+# search ---> supervisor                         [Direct loop via Command(goto="supervisor")]
+# web_scraper ---> supervisor                    [Direct loop via Command(goto="supervisor")]
+
 
 # --- WRITING TEAM SUBGRAPH ---
-doc_writer_agent = create_react_agent(
+doc_writer_agent = create_agent(
     llm,
     tools=[write_document, edit_document, read_document],
-    prompt=(
+    system_prompt=(
         "You can read, write and edit documents based on note-taker's outlines. "
         "Don't ask follow-up questions."
     ),
@@ -288,10 +328,10 @@ def doc_writing_node(state: State) -> Command[Literal["supervisor"]]:
     )
 
 
-note_taking_agent = create_react_agent(
+note_taking_agent = create_agent(
     llm,
     tools=[create_outline, read_document],
-    prompt=(
+    system_prompt=(
         "You can read documents and create outlines for the document writer. "
         "Don't ask follow-up questions."
     ),
@@ -312,7 +352,7 @@ def note_taking_node(state: State) -> Command[Literal["supervisor"]]:
     )
 
 
-chart_generating_agent = create_react_agent(
+chart_generating_agent = create_agent(
     llm, tools=[read_document, python_repl_tool]
 )
 
@@ -342,6 +382,22 @@ paper_writing_builder.add_node("note_taker", note_taking_node)
 paper_writing_builder.add_node("chart_generator", chart_generating_node)
 paper_writing_builder.add_edge(START, "supervisor")
 paper_writing_graph = paper_writing_builder.compile()
+
+OUTPUT_IMAGE_PATH = "Image_PNGs/30a_paperwriting_team.png"
+paper_writing_graph.get_graph().draw_mermaid_png(output_file_path=OUTPUT_IMAGE_PATH)    
+os.system(f"open {OUTPUT_IMAGE_PATH}")
+
+
+# 2. PAPER WRITING TEAM SUBGRAPH (30a_paperwriting_team.png)
+# __start__ ---> supervisor                      [Static edge via add_edge(START, "supervisor")]
+# supervisor ---> chart_generator                [Dynamic edge via Command(goto="chart_generator")]
+# supervisor ---> doc_writer                     [Dynamic edge via Command(goto="doc_writer")]
+# supervisor ---> note_taker                     [Dynamic edge via Command(goto="note_taker")]
+# supervisor ---> __end__                        [Dynamic edge via Command(goto=END)]
+# chart_generator ---> supervisor                [Direct loop via Command(goto="supervisor")]
+# doc_writer ---> supervisor                     [Direct loop via Command(goto="supervisor")]
+# note_taker ---> supervisor                     [Direct loop via Command(goto="supervisor")]
+
 
 
 # --- TOP LEVEL ROOT SUPERVISOR ---
@@ -383,13 +439,52 @@ super_builder.add_node("writing_team", call_paper_writing_team)
 super_builder.add_edge(START, "supervisor")
 super_graph = super_builder.compile()
 
+OUTPUT_IMAGE_PATH = "Image_PNGs/30a_super_graph.png"
+super_graph.get_graph().draw_mermaid_png(output_file_path=OUTPUT_IMAGE_PATH)    
+os.system(f"open {OUTPUT_IMAGE_PATH}")
+
+
+# 3. ROOT SUPERVISOR GRAPH (30a_super_graph.png)
+# __start__ ---> supervisor                      [Static edge via add_edge(START, "supervisor")]
+# supervisor ---> research_team                  [Dynamic edge via Command(goto="research_team")]
+# supervisor ---> writing_team                   [Dynamic edge via Command(goto="writing_team")]
+# supervisor ---> __end__                        [Dynamic edge via Command(goto=END)]
+# research_team ---> supervisor                  [Direct loop via Command(goto="supervisor")]
+# writing_team ---> supervisor                   [Direct loop via Command(goto="supervisor")]
+
+
 # Example Run Execution (Uncomment below lines to run)
-# if __name__ == "__main__":
-#     response = super_graph.invoke(
-#         {
-#             "messages": [
-#                 ("user", "Write about transformer variants in production deployments.")
-#             ],
-#         }
-#     )
-#     print(response["messages"][-1].content)
+if __name__ == "__main__":
+    
+
+    # query = (
+    #     "Research how modern Next-Gen WAFs move beyond legacy regex filters "
+    #     "to stop User-Agent spoofing using SmartParse, behavioral signals, and TLS/JA3 fingerprinting. "
+    #     "First, search for details and structure an outline. "
+    #     "Then, generate a Python chart comparing legacy regex vs. Next-Gen WAF detection latency or accuracy. "
+    #     "Finally, write a comprehensive blog post incorporating the outline and chart findings."
+    # )
+
+    query = (
+        "Research our internal notes (referencing IRN-2026-WAF-UA) and web sources regarding "
+        "how Next-Gen WAFs move beyond legacy regex filters to stop rotated User-Agent spoofing. "
+        "Detail how SmartParse tokenization, behavioral signals, and TLS/JA3 fingerprinting prevent "
+        "O(N) CPU overhead and latency spikes on origin servers. "
+        "First, synthesize the research into a structured outline. "
+        "Next, generate a Python chart plotting O(N) legacy regex latency overhead versus "
+        "SmartParse structural parsing performance. "
+        "Finally, compile everything into a polished, comprehensive technical blog post."
+    )
+
+    print(f"🚀 Executing Multi-Agent Pipeline for Query: '{query}'\n")
+    response = super_graph.invoke(
+        {
+            "messages": [
+                ("user", query)
+            ],
+        }
+    )
+    print("\n======================= FINAL GENERATED BLOG =======================")
+    print(response["messages"][-1].content)
+    print("====================================================================")
+

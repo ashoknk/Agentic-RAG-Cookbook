@@ -93,6 +93,8 @@ print(f"Bot Response 1: {state['messages'][-1].content}")
 
 # 2. Second turn: Ask a follow-up question relying on memory
 # We pass the full history (state['messages']) so the bot sees the accumulated state
+# NOTE - You MUST manually append the new question to the existing list
+# becasue we are not using  object [checkpointer=MemorySaver()]
 state['messages'].append(HumanMessage(content="What was my name again and what sport do I like?"))
 final_state = graph_builder.invoke({'messages': state['messages']})
 

@@ -11,8 +11,7 @@ This is a core capability in Agentic RAG, where the system is more than
 just a simple retriever — it plans, retrieves, and then synthesizes an 
 answer that draws from multiple sources.
 
-🎯 Why It’s Needed
-Most real-world queries are:
+🎯 Why It’s Needed .Most real-world queries are:
 - Multifaceted (require multiple types of information)
 - Ambiguous or incomplete (need refinement)
 - Open-ended (don’t map to a single document or source)
@@ -20,7 +19,7 @@ Most real-world queries are:
 🔍 This makes retrieving from a single vector DB insufficient.
 Instead, we want an agent that can:
 - Decide what to fetch from where (retrieval planning)
-- Retrieve content from multiple tools (e.g., Wikipedia, PDFs, APIs, SQL)
+- Retrieve content from multiple tools (e.g., TavilySearchResults, DuckDuckGoSearch, Text, PDFs, APIs, SQL)
 - Evaluate and merge that context
 - Produce a single human-like response
 
@@ -42,25 +41,19 @@ from langchain.chat_models import init_chat_model
 from langchain_openai import OpenAIEmbeddings
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langgraph.graph import StateGraph, END
 
 from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import TextLoader,WebBaseLoader
-from langchain_community.document_loaders.youtube import YoutubeLoader
-# from langchain_community.document_loaders import ArxivLoader
-from langchain_community.tools import ArxivQueryRun
-from langchain_community.utilities import ArxivAPIWrapper
-
-
-from langchain_community.tools import WikipediaQueryRun
-from langchain_community.utilities import WikipediaAPIWrapper
-
-from langgraph.graph import StateGraph, END
+from langchain_community.tools import DuckDuckGoSearchRun
+from langchain_community.tools import TavilySearchResults
 
 # ---------------------------------------------------------------------
 # Environment Setup and Model Initialization
 # ---------------------------------------------------------------------
 load_dotenv()
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+os.environ["TAVILY_API_KEY"] = os.getenv("TAVILY_API_KEY")
 
 # Initialize chat model
 llm = init_chat_model("openai:gpt-4o-mini")
@@ -70,6 +63,7 @@ llm = init_chat_model("openai:gpt-4o-mini")
 # Retriever Setup & Utility Search Functions
 # ---------------------------------------------------------------------
 def load_text_retriever(file_path):
+    print("📄 Loading Internal Text Files...")
     docs = TextLoader(file_path, encoding="utf-8").load()
     splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
     chunks = splitter.split_documents(docs)
@@ -77,8 +71,10 @@ def load_text_retriever(file_path):
     vs = FAISS.from_documents(chunks, embedding)
     return vs.as_retriever()
 
+
 def load_youtube_retriever():
     # Mocked YouTube transcript text
+    print("🎥 Loading Youtube...")
     content = """
     This video explains how at its core, a Web Application Firewall (WAF) operates as a security gateway positioned between external 
     clients and web application origin servers to inspect and filter application-layer (Layer 7) traffic. 
@@ -95,29 +91,29 @@ def load_youtube_retriever():
     return vectorstore.as_retriever()
 
 
-def wikipedia_search(query: str) -> str:
-    print("🌐 Searching Wikipedia...")
+def ddg_search(query: str) -> str:
+    print("🌐 Loading DuckDuckGo...")
     try:
-        api_wrapper_wiki = WikipediaAPIWrapper(top_k_results=1, doc_content_chars_max=500)
-        wiki = WikipediaQueryRun(api_wrapper=api_wrapper_wiki)
-        return wiki.run(query)
+        ddg = DuckDuckGoSearchRun()
+        return ddg.run(query)
     except Exception as e:
-        # 💡 Catch any networking or decoding errors gracefully
-        print(f"⚠️ Wikipedia API encountered an issue: {e}")
-        return "No relevant information found on Wikipedia."
+        print(f"⚠️ DuckDuckGo search encountered an issue: {e}")
+        return "No relevant information found on DuckDuckGo."
 
-def arxiv_search(query: str) -> str:
-    print("📄 Searching ArXiv...")
+
+def tavily_search(query: str) -> str:
+    print("🔍 Loading Tavily...")
     try:
-        # Try running the native LangChain tool
-        return arxiv_client.run(query)
+        # Requires TAVILY_API_KEY set in your .env file
+        tavily = TavilySearchResults(k=2)
+        results = tavily.run(query)
+        return str(results)
     except Exception as e:
-        # 💡 Catch the error and return a clean fallback string 
-        # so the LLM doesn't read a Python error message as real context.
-        return "No relevant academic papers found on ArXiv for this topic."
+        print(f"⚠️ Tavily search encountered an issue: {e}")
+        return "No relevant information found on Tavily."
+
 
 # Instantiate primary local retrievers
-
 PRIVATE_DOCS_PATH = "cybersecurity_data/private_docs.txt"
 
 text_retriever = load_text_retriever(PRIVATE_DOCS_PATH)
@@ -131,14 +127,18 @@ class MultiSourceRAGState(BaseModel):
     question: str
     text_docs: List[Document] = []
     yt_docs: List[Document] = []
-    wiki_context: str = ""
-    arxiv_context: str = ""
+    ddg_context: str = ""     
+    tavily_context: str = ""  
     final_answer: str = ""
 
 
 # ---------------------------------------------------------------------
 # Graph Retrieval Nodes
 # ---------------------------------------------------------------------
+# `model_copy` preserves immutability and ensures that LangGraph correctly tracks state transitions 
+# from node to node without modifying history in unexpected ways
+# https://pydantic.dev/docs/validation/2.4/concepts/models/
+
 def retrieve_text(state: MultiSourceRAGState) -> MultiSourceRAGState:
     docs = text_retriever.invoke(state.question)
     return state.model_copy(update={"text_docs": docs})
@@ -147,13 +147,13 @@ def retrieve_yt(state: MultiSourceRAGState) -> MultiSourceRAGState:
     docs = youtube_retriever.invoke(state.question)
     return state.model_copy(update={"yt_docs": docs})
 
-def retrieve_wikipedia(state: MultiSourceRAGState) -> MultiSourceRAGState:
-    result = wikipedia_search(state.question)
-    return state.model_copy(update={"wiki_context": result})
+def retrieve_ddg(state: MultiSourceRAGState) -> MultiSourceRAGState:
+    result = ddg_search(state.question)
+    return state.model_copy(update={"ddg_context": result})
 
-def retrieve_arxiv(state: MultiSourceRAGState) -> MultiSourceRAGState:
-    result = arxiv_search(state.question)
-    return state.model_copy(update={"arxiv_context": result})
+def retrieve_tavily(state: MultiSourceRAGState) -> MultiSourceRAGState:
+    result = tavily_search(state.question)
+    return state.model_copy(update={"tavily_context": result})
 
 
 # ---------------------------------------------------------------------
@@ -163,21 +163,18 @@ def synthesize_answer(state: MultiSourceRAGState) -> MultiSourceRAGState:
     context = ""
     context += "\n\n[Internal Docs]\n" + "\n".join([doc.page_content for doc in state.text_docs])
     context += "\n\n[YouTube Transcript]\n" + "\n".join([doc.page_content for doc in state.yt_docs])
-    context += "\n\n[Wikipedia]\n" + state.wiki_context
-    context += "\n\n[ArXiv]\n" + state.arxiv_context
+    context += "\n\n[DuckDuckGo]\n" + state.ddg_context
+    context += "\n\n[Tavily]\n" + state.tavily_context
 
     prompt = f"""You have retrieved relevant context from multiple sources. Now synthesize a complete and coherent answer.
 
 Question: {state.question}
-
-Context:
-{context}
+Context:{context}
 
 Final Answer:"""
-
     answer = llm.invoke(prompt).content.strip()
     return state.model_copy(update={"final_answer": answer})
-
+    
 
 # ---------------------------------------------------------------------
 # Build and Compile LangGraph Framework
@@ -187,16 +184,16 @@ builder = StateGraph(MultiSourceRAGState)
 # Add processing nodes to graph
 builder.add_node("retrieve_text", retrieve_text)
 builder.add_node("retrieve_yt", retrieve_yt)
-builder.add_node("retrieve_wiki", retrieve_wikipedia)
-builder.add_node("retrieve_arxiv", retrieve_arxiv)
+builder.add_node("retrieve_ddg", retrieve_ddg)
+builder.add_node("retrieve_tavily", retrieve_tavily)
 builder.add_node("synthesize", synthesize_answer)
 
 # Linear execution sequence pipeline layout
 builder.set_entry_point("retrieve_text")
 builder.add_edge("retrieve_text", "retrieve_yt")
-builder.add_edge("retrieve_yt", "retrieve_wiki")
-builder.add_edge("retrieve_wiki", "retrieve_arxiv")
-builder.add_edge("retrieve_arxiv", "synthesize")
+builder.add_edge("retrieve_yt", "retrieve_ddg")
+builder.add_edge("retrieve_ddg", "retrieve_tavily")
+builder.add_edge("retrieve_tavily", "synthesize") 
 builder.add_edge("synthesize", END)
 
 # Compile graph configuration
@@ -206,13 +203,15 @@ graph = builder.compile()
 OUTPUT_IMAGE_PATH = "Image_PNGs/AnswerSynthesis.png"
 graph.get_graph().draw_mermaid_png(output_file_path=OUTPUT_IMAGE_PATH)    
 # Automatically display/open the image on macOS NOTE _Just for testing purposes
-# os.system(f"open {OUTPUT_IMAGE_PATH}")
+os.system(f"open {OUTPUT_IMAGE_PATH}")
+
 
 # ---------------------------------------------------------------------
 # Execution Entry Point
 # ---------------------------------------------------------------------
 if __name__ == "__main__":
-    question = "What is a Web Application Firewall. Explain with examples as Fastly Next-Gen WAF . How are they evolving in recent research?"
+    # question = "What is a Web Application Firewall. Explain with examples as Fastly Next-Gen WAF . How are they evolving in recent research?"
+    question = "Web Application Firewall Fastly Next Gen WAF research"
     state = MultiSourceRAGState(question=question)
     
     print(f"Starting Multi-Source Agent workflow for query: '{question}'\n")
@@ -244,20 +243,24 @@ if __name__ == "__main__":
     else:
         print("🔹 [YouTube Video] No relevant transcripts found.")
 
-    # 3. Wikipedia Preview
-    wiki = result.get("wiki_context", "").strip()
-    if wiki and "No relevant information" not in wiki:
-        snippet = wiki[:80].replace('\n', ' ') + "..."
-        print(f"🔹 [Wikipedia] Refreshed context. Snippet: \"{snippet}\"")
+    # 3. DuckDuckGo Preview
+    ddg = result.get("ddg_context", "").strip()
+    if ddg and "No relevant information" not in ddg:
+        snippet = ddg[:80].replace('\n', ' ') + "..."
+        print(f"🔹 [DuckDuckGo] Refreshed context. Snippet: \"{snippet}\"")
     else:
-        print("🔹 [Wikipedia] No context matched.")
+        print("🔹 [DuckDuckGo] No context matched.")
 
-    # 4. ArXiv Preview
-    arxiv = result.get("arxiv_context", "").strip()
-    if arxiv and "No relevant academic papers" not in arxiv:
-        snippet = arxiv[:80].replace('\n', ' ') + "..."
-        print(f"🔹 [ArXiv Academic] Found paper details. Snippet: \"{snippet}\"")
+    # 4. Tavily Preview
+    tavily = result.get("tavily_context", "").strip()
+    if tavily and "No relevant information" not in tavily:
+        snippet = tavily[:80].replace('\n', ' ') + "..."
+        print(f"🔹 [Tavily] Found search details. Snippet: \"{snippet}\"")
     else:
-        print("🔹 [ArXiv Academic] No papers matched.")
+        print("🔹 [Tavily] No results matched.")
+
         
     print("====================================================================")
+
+
+    

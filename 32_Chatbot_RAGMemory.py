@@ -1,10 +1,15 @@
 """
 ================================================================================
+# ChatBot RAG with Memory
 This script showcases **RAG with Memory**, a stateful system architecture that 
 enables a retrieval-augmented generation app to manage multi-turn conversations. 
 Traditional RAG parses queries isolated from previous turns, preventing users 
 from submitting dependent follow-up questions. This pipeline bridges that gap 
 by integrating state reducer lists with a persistent checkpoint disk.
+
+Standard RAG processes each question independently. RAG with Memory allows the agent 
+to maintain conversation history. This enables the user to ask follow-up questions 
+like "Can you explain the second point in more detail?"
 
 1. STATE SCHEMATICS: Configures a `State` dict equipped with an append-only message 
    reducer function (`add_messages`), ensuring conversational history accumulates 
@@ -37,13 +42,6 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.checkpoint.memory import MemorySaver
 
-# # RAG with Memory
-# 
-# ### Concept
-# Standard RAG processes each question independently. RAG with Memory allows the agent 
-# to maintain conversation history. This enables the user to ask follow-up questions 
-# like "Can you explain the second point in more detail?"
-
 # Load environment variables
 load_dotenv()
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
@@ -62,14 +60,13 @@ retriever = vectorstore.as_retriever(search_kwargs={"k": 2})
 
 # ### 2. Define the State
 # We use add_messages to ensure the history is appended, not overwritten.
+# When a node returns a new message, do NOT overwrite the existing list of messages; instead, append (add) the new message to the end of the list."
 class State(TypedDict):
     messages: Annotated[List[BaseMessage], add_messages]
     context: List[Document]
     answer: str
 
 # ### 3. Define the Nodes
-#NOTE - use gpt-4o-mini if below does not work 
-# llm = ChatOpenAI(model="gpt-4o", temperature=0)
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
 # #### Node: Retrieve
@@ -80,6 +77,7 @@ def retrieve(state: State):
     return {"context": documents}
 
 # #### Node: Generate
+# NOTE we did not use this in 18a_Chatbot.py 
 def generate(state: State):
     prompt = ChatPromptTemplate.from_messages([
         ("system", "Answer the user's question based on the context provided: {context}"),
@@ -107,6 +105,7 @@ workflow.add_edge("retrieve", "generate")
 workflow.add_edge("generate", END)
 
 # IMPORTANT: Add Memory Checkpointer
+# NOTE we did not use this in 18a_Chatbot.py 
 memory = MemorySaver()
 app = workflow.compile(checkpointer=memory)
 
@@ -115,10 +114,14 @@ config = {"configurable": {"thread_id": "user_123"}}
 
 print("--- Question 1 ---")
 req1 = {"messages": [HumanMessage(content="What is LangGraph?")]}
-for chunk in app.stream(req1, config=config):
-    print(chunk)
+# for chunk in app.stream(req1, config=config):
+#     print(chunk)
+answer1 = app.invoke(req1, config=config)
+print(f"Bot Response 1: {answer1['messages'][-1].content}")    
 
 print("\n--- Question 2 (Follow-up) ---")
 req2 = {"messages": [HumanMessage(content="How does it handle memory?")]}
-for chunk in app.stream(req2, config=config):
-    print(chunk)
+# for chunk in app.stream(req2, config=config):
+#     print(chunk)
+answer2 = app.invoke(req2, config=config)
+print(f"Bot Response 1: {answer2['messages'][-1].content}")        

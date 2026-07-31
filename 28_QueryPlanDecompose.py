@@ -1,38 +1,36 @@
 """
 ### 🧠 What is Query Planning and Decomposition?
-Query Planning and Decomposition is a technique where a complex user query is broken down into simpler sub-questions or tasks, allowing a system (like a RAG agent) to:
-
-- Understand the question more deeply
-- Retrieve more precise and complete information
-- Execute step-by-step reasoning
+Query Planning and Decomposition is a technique where a complex user query is broken down into simpler sub-questions or tasks.
 
 It's like reverse-engineering a question into manageable steps before answering.
 
-🧠 What's New in This Version?
-- ✅ Add a Query Planner Node
-- ✅ Break complex user queries into sub-questions
-- ✅ Retrieve docs per sub-question
-- ✅ Combine all retrieved contexts
-- ✅ Generate a final consolidated answer
+🧠  Planner: Breaks query into sub-questions.  
+    Retriever: Loops over sub-questions, retrieves relevant context documents for each, 
+                and merges all documents into one single list (all_docs).  
+    Generator: Takes the entire combined context and the original user query, then generates a single, fully synthesized answer.  
+
+13_QueryDecomposition.py does NOT use StateGraph
+StateGraph, it is trivial to extend. If a sub-question retrieves no results, or if the answer fails self-reflection, you can easily add conditional edges to re-try or loop back.
+
+Unlike 13_QueryDecomposition.py this code aggregates all context before answering. Complex queries often require connecting dots across different sub-questions
 
 [CoT-RAG (26_COTRag.py)]
 Complex Query ──> Planner (Compresses into 1 Unified Search String) ──> Single Search (Tavily) ──> Final Synthesis
 
 [Query Decomposition (This file)]
-Complex Query ──> Planner (Splits into 2-3 Distinct Sub-Questions) ──> Multiple Sequential Searches (FAISS) ──> Consolidated Synthesis
+Complex Query ──> Planner (Splits into 2-3 Distinct Sub-Questions) ──>
+     Multiple Sequential Searches (FAISS) ──> Consolidated Synthesis
 """
 
 import os
+import warnings
+from dotenv import load_dotenv
 from typing import List
 from pydantic import BaseModel
 from langchain_openai import OpenAIEmbeddings
 
-import warnings
-
 # Set a custom User-Agent identifying your application
 os.environ["USER_AGENT"] = "Agentic-RAG-Cookbook/1.0 (contact: ash@codeaiwashnaiku.com)"
-
-
 
 from langchain_core._api.deprecation import LangChainPendingDeprecationWarning
 # Suppress the specific LangChain serialization warning
@@ -43,10 +41,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import TextLoader,WebBaseLoader
 from langgraph.graph import StateGraph, END
-
-import os
 from langchain.chat_models import init_chat_model
-from dotenv import load_dotenv
 
 load_dotenv()
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
@@ -115,9 +110,7 @@ def generate_final_answer(state: RAGState) -> RAGState:
     context = "\n\n".join([doc.page_content for doc in state.retrieved_docs])
     prompt = f"""
 Use the context below to answer the question.
-
 Context:{context}
-
 Question: {state.question}
 """
     
@@ -144,7 +137,7 @@ graph = builder.compile()
 OUTPUT_IMAGE_PATH = "Image_PNGs/QueryPlanningDecomposition.png"
 graph.get_graph().draw_mermaid_png(output_file_path=OUTPUT_IMAGE_PATH)    
 # Automatically display/open the image on macOS NOTE _Just for testing purposes
-# os.system(f"open {OUTPUT_IMAGE_PATH}")
+os.system(f"open {OUTPUT_IMAGE_PATH}")
 
 # ----------------------------
 # 5. Run the pipeline
