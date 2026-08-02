@@ -1,17 +1,15 @@
 """
-================================================================================
-FILE: 36_RagEvaluation_Intermediate.py
-================================================================================
+RagEvaluation Intermediate
 
 WHAT THIS FILE ADDS COMPARED TO 36_RagEvaluation.py:
 ----------------------------------------------------
 1. FROM STATIC STRINGS TO AN ACTUAL RAG PIPELINE:
-   - 36_RagEvaluation.py used hardcoded, static text strings (`test_context`, `test_answer`).
+   - 36a_RagEvaluation.py used hardcoded, static text strings (`test_context`, `test_answer`).
    - This file builds a lightweight, real-working RAG pipeline (using an InMemoryVectorStore 
      and document retriever) so you can evaluate dynamically retrieved context.
 
 2. EXPANSION TO THE COMPLETE "RAG TRIAD" METRICS:
-   - 36_RagEvaluation.py only evaluated a single metric: Faithfulness.
+   - 36a_RagEvaluation.py only evaluated a single metric: Faithfulness.
    - This file introduces all 3 pillars of the RAG Triad:
        a) Faithfulness / Groundedness (Is answer supported ONLY by retrieved context?)
        b) Answer Relevance (Does the answer directly address the user's question?)
@@ -19,7 +17,7 @@ WHAT THIS FILE ADDS COMPARED TO 36_RagEvaluation.py:
 
 3. BATCH PROCESSING ON MULTIPLE TEST CASES:
    - Instead of evaluating just 1 question, this file loops through a list of test questions 
-     (a mini test dataset) and aggregates evaluation scores using standard Python functions.
+     (a mini test dataset) and aggregates evaluation scores
 
 4. STEP-BY-STEP PREPARATION FOR LANGSMITH:
    - This file keeps everything local using standard LangChain chains so you can understand 
@@ -89,7 +87,6 @@ def run_rag_pipeline(question: str) -> dict:
 
 class MetricScore(BaseModel):
     passed: bool = Field(description="True if the criteria is fully met, False otherwise.")
-    # score: int = Field(description="Score from 1 to 5, where 5 is perfectly faithful to context")
     reason: str = Field(description="Brief explanation for the judgment.")
 
 # Evaluator 1: Faithfulness (Is the answer grounded in context?)
@@ -128,7 +125,6 @@ test_questions = [
 ]
 
 # ANSI Color Codes
-# GREEN = "\033[92m"
 BLUE = "\033[94m"  
 RED = "\033[91m"
 RESET = "\033[0m"
@@ -170,10 +166,6 @@ for idx, q in enumerate(test_questions, start=1):
     
     # Print Report
     print("EVALUATION RESULTS:")
-    # print(f" - Faithfulness: {'PASSED' if f_score.passed else 'FAILED'} | Reason: {f_score.reason}")
-    # print(f" - Answer Relevance: {'PASSED' if a_score.passed else 'FAILED'} | Reason: {a_score.reason}")
-    # print(f" - Context Relevance: {'PASSED' if c_score.passed else 'FAILED'} | Reason: {c_score.reason}")
-    # print("-" * 60 + "\n")
     print(f" - Faithfulness: {format_status(f_score.passed)} | Reason: {f_score.reason}")
     print(f" - Answer Relevance: {format_status(a_score.passed)} | Reason: {a_score.reason}")
     print(f" - Context Relevance: {format_status(c_score.passed)} | Reason: {c_score.reason}")

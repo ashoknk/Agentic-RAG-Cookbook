@@ -42,7 +42,8 @@ os.environ["LANGSMITH_API_KEY"] = os.getenv("LANGSMITH_API_KEY")
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
 os.environ["LANGSMITH_TRACING"] = "true"
 
-# Initialize LangSmith Client
+# Initialize LangSmith Client - Synchronous client for interacting with the LangSmith API
+# https://reference.langchain.com/python/langsmith/client
 client = Client()
 
 # ==============================================================================
@@ -62,9 +63,7 @@ print("--- LOADING WEB DOCUMENTS & BUILDING VECTOR STORE ---")
 docs = [WebBaseLoader(url).load() for url in urls]
 docs_list = [item for sublist in docs for item in sublist]
 
-text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-    chunk_size=250, chunk_overlap=0
-)
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=200, chunk_overlap=20)
 doc_splits = text_splitter.split_documents(docs_list)
 
 embedding = OpenAIEmbeddings(model="text-embedding-3-small", dimensions=512)
@@ -74,6 +73,7 @@ retriever = vectorstore.as_retriever(k=4)
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
 # Decorate the target RAG bot so LangSmith traces all calls automatically
+# https://reference.langchain.com/python/langsmith/run_helpers/traceable
 @traceable()
 def rag_bot(inputs: dict) -> dict:
     """RAG pipeline function passed into LangSmith evaluator."""
@@ -122,6 +122,7 @@ if not client.has_dataset(dataset_name=dataset_name):
             "outputs": {"answer": "Five types are (1) Token manipulation, (2) Gradient based attack, (3) Jailbreak prompting, (4) Human red-teaming, (5) Model red-teaming."},
         }
     ]
+    # https://reference.langchain.com/python/langsmith/client/Client/create_dataset
     dataset = client.create_dataset(dataset_name=dataset_name)
     client.create_examples(dataset_id=dataset.id, examples=examples)
     print(f"Created LangSmith Dataset: '{dataset_name}'")
@@ -132,7 +133,7 @@ else:
 # 3. DEFINE LANGSMITH EVALUATORS (LLM-AS-A-JUDGE)
 # ==============================================================================
 
-# Grader 1: Correctness (Predicted Answer vs. Ground Truth Reference Answer)
+# ---  Grader 1: Correctness (Predicted Answer vs. Ground Truth Reference Answer) --- 
 class CorrectnessGrade(TypedDict):
     explanation: Annotated[str, ..., "Explain your reasoning for the score"]
     correct: Annotated[bool, ..., "True if the answer is correct relative to ground truth"]
@@ -140,7 +141,7 @@ class CorrectnessGrade(TypedDict):
 correctness_instructions = """You are a teacher grading a quiz.
 Grade the student answer based ONLY on its factual accuracy relative to the GROUND TRUTH answer."""
 
-correctness_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0).with_structured_output(
+correctness_llm = llm.with_structured_output(
     CorrectnessGrade, method="json_schema", strict=True
 )
 
@@ -152,13 +153,13 @@ def correctness_evaluator(inputs: dict, outputs: dict, reference_outputs: dict) 
     ])
     return grade["correct"]
 
-# Grader 2: Groundedness / Faithfulness (Predicted Answer vs. Retrieved Context)
+# --- Grader 2: Groundedness / Faithfulness (Predicted Answer vs. Retrieved Context) --- 
 class GroundedGrade(TypedDict):
     explanation: Annotated[str, ..., "Explain your reasoning for the score"]
     grounded: Annotated[bool, ..., "True if answer is grounded in facts without hallucination"]
 
 grounded_instructions = """Ensure the STUDENT ANSWER is supported by the FACTS without hallucinations."""
-grounded_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0).with_structured_output(
+grounded_llm = llm.with_structured_output(
     GroundedGrade, method="json_schema", strict=True
 )
 

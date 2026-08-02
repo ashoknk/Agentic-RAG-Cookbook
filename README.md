@@ -1,12 +1,8 @@
-# Agentic-RAG-Cookbook
+# 🤖 Agentic RAG Cookbook
 
+Welcome to the **Agentic RAG Cookbook**! This repository is a comprehensive, step-by-step educational guide and production-ready laboratory for building state-of-the-art **Retrieval-Augmented Generation (RAG)** systems, conversational chatbots, and stateful multi-agent workflows. 
 
-
-Agentic-RAG-Cookbook
-
-Welcome to the **Agentic-RAG-Cookbook**, a state-of-the-art educational and development repository focused on **Retrieval-Augmented Generation (RAG)**, **Advanced Semantic Search**, and **Stateful Agentic Orchestration**. 
-
-This workspace—along with the specialized `26_Debugging_OpenAI` package—contains complete, hands-on Python implementations ranging from basic vector databases to complex, self-correcting agent loops (using LangGraph, LangChain, and modern state validation).
+Going far beyond simple query-and-fetch pipelines, this cookbook provides a structural, numbered learning progression that leads you from the mathematical fundamentals of text embeddings all the way to advanced multi-agent orchestrations, cognitive architectures, guardrails, and programmatic evaluations using **LangChain** and **LangGraph**.
 
 <p align="center">
   <img src="Agentic-RAG-Cookbook.png" alt="Agentic RAG Cookbook Map" width="100%">
@@ -14,457 +10,336 @@ This workspace—along with the specialized `26_Debugging_OpenAI` package—cont
 
 ---
 
-## 📖 Table of Contents
-1. [Overview & Design Philosophy](#-overview--design-philosophy)
-2. [Workspace Architecture & File Map](#-workspace-architecture--file-map)
-3. [Vector Databases: Storage & Indexing](#1-vector-databases-storage--indexing)
-4. [Advanced Retrieval & Generation Techniques](#2-advanced-retrieval--generation-techniques)
-5. [Core LangChain & Pydantic Concepts](#3-core-langchain--pydantic-concepts)
-6. [Agents & Stateful Chatbots](#4-agents--stateful-chatbots)
-7. [LangGraph: ReAct Loops & Self-Correcting RAG](#5-langgraph-react-loops--self-correcting-rag)
-8. [Advanced RAG Orchestrations](#6-advanced-rag-orchestrations)
-9. [Isolated Sandbox: 26_Debugging_OpenAI](#7-isolated-sandbox-26_debugging_openai)
-10. [Getting Started & Installation](#-getting-started--installation)
-11. [Environment Variables Reference](#-environment-variables-reference)
+## 🏗️ Project Overview
+
+The repository acts as a conceptual pipeline, systematically introducing and layering complex AI engineering concepts:
+1. **Basics of Text Ingestion & Embeddings**: Creating and processing local documents; comparing embedding vectors using cosine distance.
+2. **Vector Stores & Database Connectors**: Setting up and query-indexing across diverse database backends, including **ChromaDB**, **FAISS**, **Neo4j GraphDB**, **AstraDB**, **Pinecone**, and ephemeral in-memory indexing.
+3. **Advanced Retrieval Strategies**: Fine-tuning context relevance via hybrid dense-sparse search, cross-encoder reranking, Maximal Marginal Relevance (MMR), query expansion, query decomposition, and Hypothetical Document Embeddings (HyDE).
+4. **Multimodal Capabilities**: Expanding the RAG paradigm to handle image inputs and chart reasoning using OpenAI's vision APIs.
+5. **Agentic Loops & Tool Binding**: Constructing custom reasoning loops, binding standard tools (e.g., weather APIs, math executors, web search) to LLMs, and forcing structured outputs via `TypedDict` and `Pydantic`.
+6. **Stateful Graph Workflows**: Building state machines with **LangGraph** to support streaming, intermediate execution state inspection, and manual human-in-the-loop approval gates.
+7. **Cognitive Architectures & Corrective RAG**: Implementing industry-standard patterns such as ReAct (Reasoning and Acting), Self-Reflection, Chain-of-Thought (CoT), Corrective RAG (CRAG), and Adaptive Routing RAG.
+8. **Multi-Agent Coordination**: Organizing complex work across linear pipelines, supervisor-led agent networks, and nested multi-team hierarchies.
+9. **Infrastructure, Production, & Testing**: Securing applications with guardrails, wrapping graphs in API Gateways, implementing caching layers, and running end-to-end evaluations (e.g., faithfulness, relevancy, and Ragas metrics).
 
 ---
 
-## 🌟 Overview & Design Philosophy
+## 📂 File Inventory
 
-The purpose of this repository is to act as a **developer's reference guide and sandbox** for building production-grade LLM applications. Instead of relying on rigid, high-level abstractions, the code demonstrates how things work under the hood. You will find:
+Below is a comprehensive list of all Python files found in this repository, structured by their functional category in the cookbook's learning path.
 
-*   **Explicit Workflows**: No hidden magic. Each script is self-contained or explicitly parameterized, showcasing exactly how documents are loaded, split, indexed, retrieved, graded, and fed into models.
-*   **Dual Orchestration**: Highlights the shift from traditional **LangChain Chains (LCEL)** to highly complex, circular, and cyclic **LangGraph StateGraphs**.
-*   **Multi-Provider Design**: Leverages various model providers (OpenAI, Anthropic, HuggingFace, Groq with Qwen, and Ollama) using modern abstractions like LangChain's `init_chat_model` to allow simple runtime model swapping.
+### 1. Document Ingestion & Embeddings
+* **`01a_Create_Text_Files.py`**
+  Creates local dummy cybersecurity text files to seed the dataset directory for subsequent retrieval exercises.
+* **`01b_Embedding_Check.py`**
+  Initializes OpenAI embedding models and calculates cosine similarity to check spatial proximity between sentences.
+* **`01c_PublicSources_Data.py`**
+  Retrieves and preprocesses unstructured data from public and external web sources for RAG pipeline integration.
 
----
+### 2. Local & Cloud Vector Databases
+* **`02a_ChromaDB_VectorStore.py`**
+  Demonstrates how to initialize, configure, and query a local ChromaDB vector store using documents and metadata.
+* **`02b_ChromaDB_RAGChain.py`**
+  Bridges ChromaDB with a LangChain chat model to build a basic, single-turn question-answering RAG pipeline.
+* **`02c_ChromaDB_LCEL_NewDoc.py`**
+  Explains how to use LangChain Expression Language (LCEL) to dynamically ingest new documents and execute RAG chains in a unified expression.
+* **`02d_ChromaDB_ConverseMemory.py`**
+  Integrates session-aware conversational memory with ChromaDB RAG to support multi-turn dialogues with full chat history preservation.
+* **`03a_FAISS_BuildStore.py`**
+  Builds, populates, and persists a local, high-performance FAISS (Facebook AI Similarity Search) index using OpenAI Embeddings.
+* **`03b_FAISS_SimilaritySearch.py`**
+  Loads a saved FAISS index and performs direct semantic similarity searches, filtering results by confidence score thresholds.
+* **`03c_FAISS_RAG_Groq_Doc.py`**
+  Combines FAISS retrieval with the Groq API (e.g., Llama-3 models) to run rapid RAG question-answering on local documents.
+* **`03d_FAISS_BuildStore_TextFile.py`**
+  A customized utility designed to load raw txt assets, chunk them recursively, and index them into a dedicated FAISS store.
+* **`03e_FAISS_RAG_Groq_TextFile.py`**
+  Executes a low-latency chat-RAG chain targeting the text-file FAISS database using the Groq LLM client.
+* **`04a_Neo4jDB.py`**
+  Configures and connects to a Neo4j Graph Database, illustrating entity extraction and basic property graph storage.
+* **`04b_Neo4jDB.py`**
+  Queries graph connections to showcase GraphRAG, retrieving rich relation contexts that standard vector search misses.
+* **`05_InMemory_VectorStore.py`**
+  Utilizes simple, ephemeral in-memory indexing configurations for rapid prototyping and mock vector stores without database setup.
+* **`06_AstraDB_VectorStore.py`**
+  Connects a RAG pipeline to DataStax AstraDB (serverless cloud Cassandra) to index and query vector collections in the cloud.
+* **`07_PineconeDB_VectorStore.py`**
+  Configures a managed Pinecone cloud database to run high-dimension similarity lookups and hybrid retrieval at scale.
 
-## 🗂️ Workspace Architecture & File Map
+### 3. Advanced Splitting & Chunker Engineering
+* **`08a_RAG_CustomChunker.py`**
+  Implements custom regex-based and semantic text splitting strategies to retain structural document context during ingestion.
+* **`08b_RAG_NativeChunker.py`**
+  Demonstrates out-of-the-box LangChain text splitters, comparing recursive character splitting and token-based splitting limits.
 
-Here is an architectural map of how files in this repository group by educational module:
+### 4. Advanced Search & Query Transformation
+* **`09_Dense_Sparse.py`**
+  Implements hybrid search by merging dense vector embeddings with sparse BM25 keyword matching scores.
+* **`10a_ReRanking.py`**
+  Applies cross-encoder re-ranking to a retrieved set of document chunks, pushing the most highly relevant segments to the top.
+* **`10b_ReRanking.py`**
+  Integrates a third-party Reranker (such as Cohere) directly into a LangChain pipeline, highlighting performance improvements.
+* **`11_MMR.py`**
+  Uses Maximal Marginal Relevance (MMR) algorithms to retrieve documents, balancing semantic similarity with diverse token viewpoints to eliminate redundancy.
+* **`12_QueryExpansion.py`**
+  Employs an LLM to expand a single user query into multiple conceptual variations, ensuring broader coverage during vector store retrieval.
+* **`13_QueryDecomposition.py`**
+  Decomposes multifaceted user questions into simpler, individual sub-queries, executes them in parallel, and synthesizes the answers.
+* **`14a_HyDE_Manual_BetterOP.py`**
+  Implements manual Hypothetical Document Embeddings (HyDE) where a model-generated mock response acts as the embedding query.
+* **`14b_HyDE_Embed_Web.py`**
+  Combines HyDE query formulation with live web search APIs to fetch verified, up-to-date context from the internet.
+* **`14c_HyDE_Embed_Custom.py`**
+  Customizes HyDE template prompts and temperature parameters to adapt the search generator to narrow, specialized domains.
 
-```
-Agentic-RAG-Cookbook/
-├── Vector DBs & Indexing (Chroma, FAISS, Astra, Pinecone)
-│   ├── 01a_Create_Text_Files.py           # Prepares sample cybersecurity & tech datasets
-│   ├── 01a_Embedding_Check.py            # Diagnostic check for OpenAIEmbeddings dimensions
-│   ├── 02a_ChromaDB_VectorStore.py       # Creating & persisting vector stores in Chroma
-│   ├── 02b_ChromaDB_RAGChain.py          # Classic Stuff Chain RAG over Chroma
-│   ├── 02c_ChromaDB_LCEL_NewDoc.py       # Building customizable chains with LangChain LCEL
-│   ├── 02d_ChromaDB_ConverseMemory.py    # Conversation chain with memory variables
-│   ├── 03a_FAISS_BuildStore.py           # Ingestion and serialization of local documents using FAISS
-│   ├── 03b_FAISS_SimilaritySearch.py     # Semantic search, filtering, and scoring using FAISS
-│   ├── 03c_FAISS_RAG_Groq_Doc.py         # Combining Groq (Qwen) with FAISS retrieved documents
-│   ├── 03d_FAISS_BuildStore_TextFile.py  # Building vector indices from flat datasets
-│   ├── 03e_FAISS_RAG_Groq_Text.py        # Complete RAG pipeline query with Groq-based inference
-│   ├── 04_InMemoryVectorStore_Sample.py  # Volatile vector store implementations for tests
-│   ├── 08_AstraDB_Sample.py              # Cloud-native serverless Cassandra vector search setup
-│   └── 09_PineconeDB_Sample.py           # Serverless Pinecone index management and query flow
-│
-├── Advanced Retrieval (Expansion, HyDE, Re-ranking, MMR)
-│   ├── 10b_RAG_CustomChunker.py          # Custom structure-based text-splitters
-│   ├── 10d_RAG_NativeChunker.py          # LangChain's RecursiveCharacterTextSplitter patterns
-│   ├── 11_DensesParse.py                 # Hybrid dense/sparse text parsing (Ensemble BM25 + FAISS)
-│   ├── 12_ReRanking.py                   # Two-stage retrieval using LLMs to re-score candidates
-│   ├── 13_MMR.py                         # Maximal Marginal Relevance to resolve document redundancy
-│   ├── 14_QueryExpansion.py              # Generating multiple sub-queries to capture synonyms
-│   ├── 15_QueryDecomposition.py          # Breaking down nested multi-part user queries
-│   ├── 16a_HyDE_Manual_BetterOP.py       # Hypothetical Document Embeddings with customized templates
-│   ├── 16b_HyDE_Embed_Web.py             # Integrating HyDE with Wikipedia and Web sources
-│   ├── 16c_HyDE_Embed_Custom.py          # Custom prompt schemas to build domain-specific HyDE
-│   └── 17_MultimodalOpenAI.py            # Multi-modal (Text + Image/PDF) retrieval and modeling
-│
-├── Core Abstractions & Schema Modeling
-│   ├── 18c_Langchain_Models.py           # Using init_chat_model for decoupled provider setups
-│   ├── 18d_Langchain_StreamVSBatch.py    # Direct comparison of stream vs. batch latency characteristics
-│   ├── 18e_Langchain_BindTools.py        # Declaring functions as tools and binding to models
-│   ├── 18f_Langchain_Message.py          # Custom messaging wrappers (System, Human, AI, Tool)
-│   ├── 18g_Langchain_StructuredTypeDict.py# Enforcing typed outputs with TypedDict schemas
-│   ├── 18h_Langchain_StructuredPydanticpy# Structuring nested JSON data using Pydantic BaseModel
-│   ├── 18i_Langchain_Middlewarepy        # Execution pipelines and runtime middleware interceptors
-│   ├── 21a_TypedDict_StateSchema.py      # State modeling using TypedDict schemas
-│   ├── 21b_DataClassStateSchema.py       # State modeling using dataclass schemas
-│   ├── 21c_Pydantic.py                   # Parsing and data validation with Pydantic
-│   └── 21d_Pydantic_StateSchema.py       # Advanced state modeling using Pydantic constraints
-│
-├── Chatbots, Streaming, & Agents
-│   ├── 18a_LangchainAgent_Intro.py       # Basic LLM tool routing agent overview
-│   ├── 18b_LangchainAgent_WeatherAPI.py  # Agent calling free geocoding and Open-Meteo APIs
-│   ├── 20_Chatbot.py                     # A stateful chatbot built with LangGraph message state
-│   ├── 23a_Messages_Tools_Baseline.py    # Mapping complex multi-argument tools to model invocations
-│   ├── 23b_State_Graph_Reducers.py       # Custom state graph reducers and list update mechanics
-│   └── 25b_Streaming.py                  # Deep-dive into stream_mode ("updates" vs. "values")
-│
-├── StateGraphs & Prebuilt Agents (LangGraph)
-│   ├── 19_SimpleGraph.py                 # Introductory two-node cyclic LangGraph StateGraph
-│   ├── 24b_ChatbotsWithMultipletools.py  # LangGraph chatbot bound with a rich suite of local tools
-│   ├── 27a_AgentsArch_MathTools.py       # Math tool agents using compiled graphs
-│   ├── 27b_AgentsArch_SearchTools.py     # Search and web routing agents using Tavily
-│   ├── 27c_AgentsArch_DictTechTools.py   # Specialized dictionary and lookup agents
-│   ├── 27d_AgentsArch_AllTools.py.py     # Combined agent containing mathematical, dictionary, and web tools
-│   ├── 29a_AgenticRAG1.py                # Initial pipeline combining vector retrieval with agents
-│   ├── 31a_ReAct.py                      # Basic prebuilt ReAct framework (Think → Act → Observe)
-│   └── 31b_ReAct.py                      # Advanced ReAct utilizing multi-source corporate routing
-│
-├── Advanced Agentic RAG & Graph Orchestration
-│   ├── 31d_AgenticRAGDetailedProject_Grader.py  # Self-correcting RAG flow with custom LLM document grader
-│   ├── 31d2_AgenticRAGDetailedProject_Grader.py # Corrective RAG variant implementing prompt improvements
-│   ├── 35_COTRag.py                      # Chain-of-Thought RAG breaking queries into steps
-│   ├── 36_Selfreflection.py              # Self-Reflection loop to rewrite poor quality answers
-│   ├── 37_QueryPlanningDecomposition.py  # Query decomposition nodes compiled in a LangGraph workflow
-│   ├── 39_Answersynthesis.py             # Collating and merging multi-source answers into an output
-│   ├── 40_Multiagent.py                  # Multi-agent coordination (Supervisor routing to sub-agents)
-│   ├── 41_CorrectiveRAG.py               # Full Corrective RAG (CRAG) with web search backup nodes
-│   ├── 42_AdaptiveRAG.py                 # Adaptive RAG routing query to specialized stores vs. web search
-│   ├── 43_RagMemory.py                   # Dynamic cross-turn RAG memory storing context across sessions
-│   ├── 44_CacheAugmentGeneration.py      # Cache-Augmented Generation (CAG) for long-context prompts
-│   └── 45_RagEvaluation.py               # RAGAS-style evaluation measuring faithfulness and precision
-│
-└── 26_Debugging_OpenAI/                 # Isolated workspace for local LangGraph API debugging
-```
+### 5. Multimodal RAG
+* **`15a_MultimodalOpenAI.py`**
+  Passes mixed image and text payloads to OpenAI's GPT-4o model, showcasing standard visual interpretation.
+* **`15b_MultimodalOpenAI.py`**
+  Retrieves images from a dataset based on text queries and passes both the query and images to a multimodal generator.
+* **`15c_MultimodalOpenAI.py`**
+  Implements a complete multimodal RAG flow capable of reading and answering questions about charts, tables, and PDF diagrams.
 
----
+### 6. Agentic Foundations & Tool Integration
+* **`16a_LangchainAgent_Intro.py`**
+  Introduces the agentic paradigm, configuring a simple reasoning loop that executes tools based on model outputs.
+* **`16b_LangchainAgent_WeatherAPI.py`**
+  Builds a functional agent by wrapping a real-time Weather API into a structured tool, enabling the model to pull external data.
+* **`16c_Langchain_Models.py`**
+  Demonstrates switching and comparing LLM backends (OpenAI, Anthropic, Groq) inside standard LangChain agent structures.
+* **`16d_Langchain_StreamVSBatch.py`**
+  Compares token streaming and execution batching techniques in LangChain, optimizing latency and network overhead.
+* **`16e_Langchain_BindTools.py`**
+  Explores low-level tool binding to ChatModels, converting standard Python function signatures into OpenAI-compatible tool schemas.
+* **`16f_Langchain_Message.py`**
+  Teaches manipulation of message histories using `SystemMessage`, `HumanMessage`, `AIMessage`, and `ToolMessage` formatting.
+* **`16g_Langchain_StructuredTypeDict.py`**
+  Forces an LLM to generate structured outputs formatted specifically as a native Python `TypedDict`.
+* **`16h_Langchain_StructuredPydantic.py`**
+  Leverages Pydantic schemas to validate and parse structured model outputs with absolute static and runtime type-safety.
 
-## 🗃️ 1. Vector Databases: Storage & Indexing
+### 7. Stateful LangGraph Orchestration
+* **`17_SimpleGraph.py`**
+  Acts as a gentle introduction to LangGraph, setting up a basic state machine with manual nodes and direct edges.
+* **`18a_Chatbot.py`**
+  Implements a state-retaining chatbot using LangGraph, persisting conversation states across user messages.
+* **`18b_Streaming.py`**
+  Explores deep streaming setups, yielding both graph state changes (node execution traces) and raw LLM tokens to the client in real-time.
+* **`18c_Middleware_Tokens.py`**
+  Demonstrates custom middleware patterns within LangGraph to monitor, count, and restrict token usage across node executions.
+* **`18d_Middleware_HumanInLoop.py`**
+  Implements manual approval gates and state edits (Human-In-The-Loop) before letting the graph transition to a critical action node.
+* **`19a_TypedDict_StateSchema.py`**
+  Configures a LangGraph state schema using a standard Python `TypedDict`, describing state properties and execution tracking.
+* **`19b_DataClassStateSchema.py`**
+  Uses Python `dataclass` structures as state schemas inside LangGraph, providing clean typing and field instantiations.
+* **`19c_Pydantic.py`**
+  Details standalone validation mechanics, constraint definitions, and nested field parsing using Pydantic.
+* **`19d_Pydantic_StateSchema.py`**
+  Configures state graphs using Pydantic schemas, enforcing runtime structural validity for all active states.
+* **`20a_Messages_Tools_Baseline.py`**
+  Establishes a baseline tool-execution state graph, serving as the benchmark for state reducer optimizations.
+* **`20b_State_Graph_Reducers.py`**
+  Illustrates state reducers in LangGraph, showing how to define custom merge operations (such as appending list elements) on state updates.
+* **`21a_ChatbotsWithMultipletools.py`**
+  Builds a multi-tool graph chatbot that can dynamically invoke math computations, system directories, or database searches.
+* **`21b_ChatbotsWithMultipletools.py`**
+  Adds advanced contextual history and tool result formatting to a multi-tool chatbot flow.
+* **`23a_AgentsArch_MathTools.py`**
+  Configures a modular graph routing system focused on math solvers, mapping inputs to advanced calculation toolsets.
+* **`23b_AgentsArch_SearchTools.py`**
+  Creates an agent architecture with integrated web-search tools (such as Tavily) to verify data during execution.
+* **`23c_AgentsArch_DictTechTools.py`**
+  Maps tools and functions dynamically using dictionary lookups, allowing rapid runtime configuration of agent abilities.
+* **`23d_AgentsArch_AllTools.py.py`**
+  Integrates diverse tool classes (math, database, and web search) under a unified state coordinator node.
 
-Modern RAG relies on storing raw documents as high-dimensional semantic embeddings. This repository contains detailed, production-style examples for 5 separate vector storage engines:
+### 8. Cognitive Agent Architectures (CRAG, Adaptive RAG, and CoT)
+* **`24_AgenticRAG.py`**
+  A modular implementation of Agentic RAG where the LLM decides when to retrieve documents and when to synthesize answers.
+* **`25a_ReAct.py`**
+  Implements the standard Reasoning and Acting (ReAct) loop from scratch as a cycle of agent calls and tool nodes in LangGraph.
+* **`25b_ReAct.py`**
+  Extends the custom ReAct agent loop with conversational memory and dynamic session persistence.
+* **`25c_AgenticRAG_Grader.py`**
+  Integrates a document grader node that verifies whether retrieved contexts are relevant before executing answer generation.
+* **`25d_AgenticRAG_CRAG.py`**
+  Implements Corrective RAG (CRAG) which grades retrieved documents and falls back to a Wikipedia web search if the local knowledge is insufficient.
+* **`26_COTRag.py`**
+  Implements Chain-of-Thought (CoT) reasoning in a RAG pipeline, directing the model to output a detailed internal rationale before writing the final response.
+* **`27_SelfReflection.py`**
+  Enables self-reflection loops inside the graph, forcing the model to critique and rewrite its drafts iteratively until quality criteria are met.
+* **`28_QueryPlanDecompose.py`**
+  Constructs a query-planner node that decomposes user goals into a step-by-step sequential action plan for execution.
+* **`29_AnswerSynthesis.py`**
+  Aggregates multiple retrieved documents, web results, and intermediate tool responses into a consolidated, highly coherent final response.
 
-```
-                                  ┌────────────────────────┐
-                                  │   Raw Documents (.txt)  │
-                                  └───────────┬────────────┘
-                                              │
-                                              ▼  [RecursiveCharacterTextSplitter]
-                                  ┌────────────────────────┐
-                                  │   Normalized Chunks    │
-                                  └───────────┬────────────┘
-                                              │
-                                              ▼  [OpenAIEmbeddings / HFEmbeddings]
-                               ┌──────────────┴──────────────┐
-                               ▼                             ▼
-                  ┌─────────────────────────┐   ┌─────────────────────────┐
-                  │    Local Vector Store   │   │    Cloud Vector Store   │
-                  │   (ChromaDB / FAISS)    │   │  (Pinecone / AstraDB)   │
-                  └─────────────────────────┘   └─────────────────────────┘
-```
+### 9. Multi-Agent Systems
+* **`30a_Multiagent_Sequential.py`**
+  Sets up a sequential pipeline where separate specialist agents (e.g., Researcher, Writer, Editor) pass their output downstream in order.
+* **`30b_Multiagent_Supervisor.py`**
+  Builds a hub-and-spoke multi-agent team where a master "Supervisor" LLM evaluates user input and dynamically delegates tasks to subordinate specialist agents.
+* **`30c_Multiagent_MultiTeams.py`**
+  Implements nested team hierarchies, enabling a super-supervisor agent to manage distinct, coordinate-based multi-agent teams (e.g., dev team vs. QA team).
+* **`31_Adaptive_RoutingRAG.py`**
+  Implements Adaptive RAG, utilizing a classification node to route queries to web search, vector store, or direct answering depending on the topic.
 
-### Supported Stores & Implementations
-1.  **ChromaDB (`02a_ChromaDB_VectorStore.py`, `02b_ChromaDB_RAGChain.py`)**:
-    *   Deploys a local sqlite-backed vector persistent index.
-    *   Demonstrates how `DirectoryLoader` reads and transforms folder files using `RecursiveCharacterTextSplitter`.
-    *   Utilizes the modern `langchain-chroma` client to perform standard vector additions and persist chunks.
-2.  **FAISS (`03a_FAISS_BuildStore.py`, `03b_FAISS_SimilaritySearch.py`)**:
-    *   Implements Meta's high-performance **Facebook AI Similarity Search** library (`faiss-cpu`).
-    *   Teaches local vector saving (`index.faiss` / `index.pkl`) and loading.
-    *   Explains distance-based scoring thresholds, showing how to execute semantic lookups and discard poor results.
-3.  **Pinecone (`09_PineconeDB_Sample.py`)**:
-    *   Shows integration with a serverless cloud provider.
-    *   Demonstrates check-and-create routines for index existence, dimension alignment, and serverless specs (AWS/GCP).
-    *   Uses `PineconeVectorStore` from `langchain-pinecone` for cloud-based storage and querying.
-4.  **AstraDB (`08_AstraDB_Sample.py`)**:
-    *   Integrates DataStax AstraDB (built on Apache Cassandra) using `AstraDBVectorStore`.
-    *   Details connection parameters, API endpoints, application tokens, and namespacing setup.
-5.  **In-Memory Store (`04_InMemoryVectorStore_Sample.py`)**:
-    *   Utilizes a volatile store inside RAM. Highly recommended for rapid unit testing and low-overhead debugging of agent architectures.
+### 10. Long-term Memory & Caching
+* **`32_Chatbot_RAGMemory.py`**
+  Combines conversational memory with persistent user profile tracking to build a personalized, long-term memory RAG chatbot.
+* **`33_CacheAugmentGeneration.py`**
+  Builds a cache layer that intercepts user requests, performing semantic checks to return pre-computed responses for identical prompts and saving API costs.
 
----
+### 11. Production Security & Gateways
+* **`34a_GuardRails.py`**
+  Implements input-validation guardrails to intercept, classify, and block toxic inputs, prompt injections, and off-topic requests.
+* **`34b_GuardRails.py`**
+  Implements output-validation guardrails that scan generated responses for hallucination, correct formatting, and sensitive data leaks (PII).
+* **`34c_GuardRails.py`**
+  Integrates custom guardrail logic and programmatic verification within intermediate LangGraph node transformations.
+* **`35a_Gateway.py`**
+  Wraps a compiled LangGraph agent in a RESTful API gateway structure, exposing executable HTTP endpoints.
+* **`35b_Gateway.py`**
+  Secures the agent gateway by adding rate limiting, CORS configurations, and API key authentication layers.
+* **`35c_Gateway.py`**
+  Integrates rigorous input-schema validation and comprehensive error-logging middleware into the production gateway server.
 
-## ⚡ 2. Advanced Retrieval & Generation Techniques
-
-Simple cosine similarity often retrieves irrelevant information if a user's query is poorly framed. This repository implements several advanced, multi-step search strategies to optimize context precision:
-
-### A. Hybrid Dense/Sparse Retrieval (`11_DensesParse.py`)
-Dense semantic search (using vector distance) can sometimes miss exact keyword matches. This sandbox implements **Hybrid Retrieval** using LangChain's `EnsembleRetriever`:
-*   **Sparse Retriever**: `BM25Retriever` calculates term-frequency overlaps.
-*   **Dense Retriever**: `FAISS` indexes semantic context via neural embeddings.
-*   **Reciprocal Rank Fusion (RRF)**: Combines top-ranking hits from both methods into a unified, high-relevance output context list.
-
-### B. Query Expansion (`14_QueryExpansion.py`)
-Generates multiple variations of the initial query using an LLM. By retrieving documents for each variation, the system captures synonyms and related technical concepts that may not match the user's literal query:
-```
-                                ┌────────────────────────┐
-                                │   User Query (Short)   │
-                                └───────────┬────────────┘
-                                            │
-                                            ▼  [Prompt Template / LLM]
-                                ┌────────────────────────┐
-                                │ Query 1  Query 2  ...  │  (Expanded Synonyms)
-                                └───────────┬────────────┘
-                                            │
-                                            ▼  [Vector Store Querying]
-                                ┌────────────────────────┐
-                                │  Deduplicated Context  │
-                                └────────────────────────┘
-```
-
-### C. Query Decomposition (`15_QueryDecomposition.py`, `37_QueryPlanningDecomposition.py`)
-Deconstructs complex, multi-part questions (e.g., *"What was Company A's Q3 revenue, and how does it compare to Company B's Q3 revenue?"*) into simpler sub-queries. The agent executes these sequentially, routing sub-queries to appropriate data sources, and then synthesizes a unified answer.
-
-### D. HyDE: Hypothetical Document Embeddings (`16a_HyDE_Manual_BetterOP.py`)
-Instead of embedding a question, HyDE uses an LLM to generate a "fake" or *hypothetical* answer to that question first. It then embeds this hypothetical document to query the vector store. This bridges the language mismatch between questions and answers, focusing lookups on answer-style semantics:
-```
-           ┌────────────────┐       [LLM]      ┌───────────────┐
-           │   User Query   ├─────────────────>│ Hypothetical  │
-           └────────────────┘                  │   Document    │
-                                               └───────┬───────┘
-                                                       │
-                                                       ▼  [OpenAIEmbeddings]
-                                               ┌───────────────┐
-                                               │ Vector Search │
-                                               └───────────────┘
-```
-
-### E. LLM-Based Re-ranking (`12_ReRanking.py`)
-A two-stage retrieval strategy:
-1.  **Stage 1 (Retrieval)**: A fast vector search fetches a broad candidate pool (e.g., K=20 documents).
-2.  **Stage 2 (Re-ranking)**: An LLM acts as a high-fidelity cross-encoder, reading the actual query and context candidates side-by-side. It assigns relevance scores and reorders candidates, bringing the absolute most critical context chunks to the very top.
-
-### F. Maximal Marginal Relevance / MMR (`13_MMR.py`)
-Balances retrieval relevance with information diversity. Instead of grabbing the $N$ most similar chunks (which are often repetitive copies of the same text), MMR penalizes chunks that overlap heavily with already retrieved content. This maximizes the breadth of retrieved details.
+### 12. Evaluation & Testing
+* **`36a_RagEvaluation.py`**
+  Measures RAG performance using custom metrics, testing faithfulness and answer relevance across mock dataset queries.
+* **`36b_RagEvaluation.py`**
+  Integrates the **Ragas** framework to compute automated, high-fidelity metrics for context recall, precision, and faithfulness.
+* **`36c_RagEvaluation.py`**
+  Automates test suite executions, registering dataset evaluations to LangSmith to track and version pipeline performance improvements over time.
 
 ---
 
-## 🧱 3. Core LangChain & Pydantic Concepts
+## 🛠️ Specialized Subprojects
 
-At the foundation of this repository is a rigorous usage of modern LangChain patterns combined with structural schema definitions:
+### 📂 `38_Complete_RAG_Project`
+A standalone, production-ready, modular Agentic RAG application. It reads local PDF files from `data/` and URLs listed in `data/url.txt`, processes them with `RecursiveCharacterTextSplitter`, embeds them using OpenAI `text-embedding-3-small`, and saves them to a local **FAISS** database.
+- **Workflow & UI**: Uses LangGraph to orchestrate a ReAct Agent that can dynamically choose between local document retrieval (FAISS) or external web lookups (Wikipedia). It features an interactive **Command-Line Interface (CLI)** and a high-performance **Streamlit Web Application** dashboard.
+- **Python Files**:
+  - `main.py`: Entry point for running the interactive terminal loop and conducting batch evaluations.
+  - `streamlit_app.py`: Beautiful web-app client exposing the RAG chat and pipeline configurations visually.
+  - `src/config/config.py`: Central environment and hyperparameters configuration.
+  - `src/document_ingestion/document_processor.py`: PDF loader, text chunker, and vector database populate logic.
+  - `src/vectorstore/vectorstore.py`: Local FAISS index setup, loading, and retriever-tool wrappers.
+  - `src/state/rag_state.py`: Formulates the active LangGraph execution state schema.
+  - `src/node/nodes.py` & `src/node/reactnode.py`: State nodes executing retriever lookups and executing ReAct agent tasks.
+  - `src/graph_builder/graph_builder.py`: Hooks up the nodes, edges, conditional branches, and compiles the LangGraph state machine.
 
-### Decoupled Models via `init_chat_model`
-Instead of hardcoding provider classes like `ChatOpenAI` or `ChatAnthropic`, scripts like `18c_Langchain_Models.py` utilize the flexible factory initializer:
-```python
-from langchain.chat_models import init_chat_model
-
-# Swapping providers at runtime is as simple as updating string parameters
-model = init_chat_model("groq:qwen/qwen3.6-27b", temperature=0)
-```
-
-### Streaming Architectures (`25b_Streaming.py`)
-The workspace demonstrates two major axes of streaming:
-1.  **Execution Engine**: `.stream()` (yields chunked generator outputs) vs. `.astream_events()` (asynchronously streams granular system execution events like tool start, node execution, and raw tokens).
-2.  **State Streaming Modes (`stream_mode`)**:
-    *   `updates`: Yields only the incremental state modifications generated by the active graph node during its cycle.
-    *   `values`: Yields the entire compiled global state array at every turn.
-
-### Tool Binding (`18e_Langchain_BindTools.py`)
-Shows how to use LangChain's `@tool` decorator to automatically parse standard Python function docstrings and argument types into JSON schemas, and bind them to chat models using `model.bind_tools()`:
-```python
-@tool
-def calculate_metrics(a: float, b: float) -> float:
-    """Computes specialized performance ratios between parameters a and b."""
-    return (a / b) * 100
-
-model_with_tools = model.bind_tools([calculate_metrics])
-```
-
-### Structured Output & Schemas (`18h_Langchain_StructuredPydanticpy`, `21c_Pydantic.py`)
-Ensures model outputs are formatted into clean, nested JSON. By leveraging Pydantic's `BaseModel`, schemas are validated at runtime:
-```python
-from pydantic import BaseModel, Field
-
-class Actor(BaseModel):
-    name: str
-    role: str
-
-class MovieDetails(BaseModel):
-    title: str = Field(description="The formal title of the movie")
-    cast: list[Actor] = Field(description="Core cast details")
-
-# Force the LLM output to conform directly to the Pydantic class
-structured_llm = model.with_structured_output(MovieDetails)
-movie_info = structured_llm.invoke("Provide cast information for Project Hail Mary.")
-```
+### 📂 `39_FrontEnd`
+An advanced iteration of the production project, transitioning from standard Streamlit to a beautiful, modern **Full-Stack Application** architecture. 
+- **Stack**: Includes a high-performance, asynchronous **FastAPI** backend server to serve the LangGraph agent and a fast, modern **React (TypeScript + Vite)** frontend user interface for a fully fledged commercial-grade experience.
+- **Python Files**:
+  - `main.py` & `streamlit_app.py`: Retained terminal entry points and fallback Streamlit dashboards.
+  - `api/app.py`: FastAPI application script defining CORS policies, request/response models, and stream-ready API endpoints (`/chat`, `/ingest`) to feed the React frontend.
+  - `src/` modules: Reuses the modular document ingestion, FAISS management, LangGraph ReAct configurations, and node builder logic from project 38 to handle the core pipeline execution behind the web API.
 
 ---
 
-## 🤖 4. Agents & Stateful Chatbots
+## 🔍 Debugging Module (`22_Debugging`)
 
-Before jumping into advanced graph routing, the sandbox explores standard LangChain agent patterns and stateful chatbots:
+The **`22_Debugging`** directory is a dedicated sandbox designed to master local and cloud-based debugging, execution tracing, and state-inspection of LangGraph applications using **LangSmith** and **LangGraph Studio / API**.
 
-*   **Custom Weather Agent (`18b_LangchainAgent_WeatherAPI.py`)**:
-    An illustrative agent demonstrating the integration of external APIs. It decomposes weather questions by:
-    1.  Calling a free geocoding API to resolve a city name (e.g., "Paris") into exact latitude/longitude coordinates.
-    2.  Invoking the Open-Meteo API with those coordinates to retrieve live temperature, relative humidity, and precipitation data.
-*   **Stateful Chatbots (`20_Chatbot.py`)**:
-    Demonstrates state maintenance using LangGraph's `StateGraph`. By passing a global schema containing `messages` annotated with the `add_messages` reducer, LangGraph handles message accumulation automatically, providing a full conversation history across multiple user turns:
-    ```python
-    class State(TypedDict):
-        messages: Annotated[list, add_messages]
-    ```
-
----
-
-## 🕸️ 5. LangGraph: ReAct Loops & Self-Correcting RAG
-
-The core highlights of this sandbox are the complex state orchestrations powered by **LangGraph**. Unlike traditional sequential pipelines, LangGraph allows cyclic architectures, making loops, retries, and conditional paths incredibly straightforward to model.
-
+### 📁 Directory Structure
 ```
-                            ┌──────────────┐
-                            │    START     │
-                            └──────┬───────┘
-                                   │
-                                   ▼
-                            ┌──────────────┐
-                     ┌─────>│  Call Model  │
-                     │      └──────┬───────┘
-                     │             │
-                     │             ▼  [Conditional Check]
-                     │      /──────────────\
-                     │     /  Any Tool      \  Yes  ┌──────────────┐
-                     │    <   Calls?         >─────>│ Execute Tool │
-                     │     \                /       └──────┬───────┘
-                     │      \──────────────/               │
-                     │             │ No                    │
-                     │             ▼                       │
-                     │      ┌──────────────┐               │
-                     │      │     END      │<──────────────┘
-                     │      └──────────────┘
-                     └─────────────────────────────────────────────┘
+22_Debugging/
+├── Debugging_OpenAI.py   # Core script defining the compiled agent and its tools
+├── langgraph.json        # Configuration file for the LangGraph Local Server API
+├── pyproject.toml        # Standalone package specifications and dependencies
+└── run_it.sh             # Executable bash shell script to start the server CLI
 ```
 
-### Key Orchestrations Implemented:
+### 🎯 Purpose and Observability Capabilities
+In complex agentic graphs, understanding *why* an agent made a decision, *which* tools it invoked, and *what* state variables were updated is incredibly difficult. This module demonstrates how to configure:
+1. **Full Observability Tracing**: Linking your local environment directly to LangSmith to see raw prompts, LLM reasoning steps, latency profiles, and token counts.
+2. **Local Graph Servers**: Setting up local API endpoints that mimic production cloud runtimes.
+3. **Visual Inspections**: Allowing developers to visually interact with and "Time Travel" through graph execution states in real-time.
 
-#### 1. ReAct (Reasoning + Acting) Loops (`31a_ReAct.py`, `31b_ReAct.py`)
-Implements the foundational ReAct pattern. The agent receives a query, decides which tool to call (Think), executes the tool (Act), reads the tool's response (Observe), and decides whether to output a final answer or call another tool. 
-*   `31b_ReAct.py` extends this to **Enterprise/Multi-Source Corporate Routing**. It registers isolated custom retrievers (e.g., local corporate documents, technical research logs, and global indexes like ArxivLoader). It showcases how the agent dynamically reads tool descriptions to route requests to the most appropriate backend.
+### ⚙️ Code Logic Summary (`Debugging_OpenAI.py`)
 
-#### 2. Corrective RAG / Self-Correction with LLM Graders (`31d_AgenticRAGDetailedProject_Grader.py`)
-Also referred to as **Self-RAG** or **Corrective RAG (CRAG)**. This architecture builds an automated quality-control loop over retrieved documents before they are fed into the generation model:
-*   **Retrieval**: Fetches relevant candidates from the vector store.
-*   **Grading Node**: Passes candidates to an LLM grader via a structured prompt to evaluate if they are truly relevant (*Yes* or *No*).
-*   **Routing**:
-    *   If the documents are graded as relevant, the pipeline immediately triggers the `generate` node.
-    *   If documents are irrelevant, the pipeline routes to a `rewrite` node that reformulates the query to fix ambiguities and search again.
-*   **Web Search Integration (`41_CorrectiveRAG.py`)**: If the local vector database contains insufficient data, the agent dynamically triggers Tavily or Google Search to pull fallback contexts from the live web.
+The file defines a fully operational, tool-calling agent using LangGraph's core patterns:
 
-#### 3. Self-Reflection (`36_Selfreflection.py`)
-An advanced generation node where the LLM evaluates its own drafted answers. It grades the response against a rubric of hallucinations, completeness, and formatting constraints. If the evaluation fails, the agent writes a critique and routes back to a generation node to draft an improved response, repeating the loop until standards are met.
+1. **State Definition**:
+   Uses a state dictionary conforming to `TypedDict`:
+   ```python
+   class State(TypedDict):
+       messages: Annotated[list[BaseMessage], add_messages]
+   ```
+   The `add_messages` annotation acts as a **state reducer**, ensuring that new messages generated during conversations are appended to the chat history list rather than overwriting it.
 
-#### 4. Multi-Agent Coordination (`40_Multiagent.py`)
-Breaks down complex problems by distributing them across a team of specialized agents (e.g., a "Math Specialist," a "Web Search Researcher," and an "Enterprise Database Specialist"). A master "Supervisor" agent reads the ongoing state, coordinates the workflow, and routes sub-tasks to specialized sub-agents.
+2. **Model & Tool Setup**:
+   - Explicitly instantiates `ChatOpenAI(model="gpt-4o-mini", temperature=0)`.
+   - Defines a custom arithmetic tool `add(a, b)` using the `@tool` decorator.
+   - Binds the tool definition to the chat model using `model.bind_tools([add])` so the LLM knows the tool exists and understands its input parameter schema.
+   - Configures a prebuilt `ToolNode([add])`, which acts as an automated executor whenever the model requests a tool call.
 
----
+3. **Graph Node Workflow**:
+   - **`call_model` Node**: Passes the current chat history/state to the tool-aware model, capturing its response.
+   - **`tools` Node (`ToolNode`)**: Executes the math tool and appends the result back to the graph state.
+   - **`should_continue` Router**: A conditional edge function that inspects the latest message. If the model included `tool_calls` in its payload, it routes execution to the `"tools"` node; otherwise, it routes to `END`.
 
-## 🧠 6. Advanced RAG Orchestrations
+4. **Graph Construction & Compilation**:
+   ```python
+   graph_workflow = StateGraph(State)
+   graph_workflow.add_node("agent", call_model)
+   graph_workflow.add_node("tools", tool_node)
+   
+   graph_workflow.add_edge(START, "agent")
+   graph_workflow.add_edge("tools", "agent")  # Dynamic return-to-reasoning edge
+   graph_workflow.add_conditional_edges("agent", should_continue, {"tools": "tools", END: END})
+   
+   agent = graph_workflow.compile()
+   ```
 
-Beyond standard retrieval mechanisms, the sandbox features production-tier patterns that combine state preservation, routing, and scoring:
-
-### A. Adaptive RAG Routing (`42_AdaptiveRAG.py`)
-Routes an incoming query to the most optimal pipeline immediately upon entry. A high-efficiency LLM router examines the question structure to select from:
-1.  **Web Search**: Applied to query-time events, current affairs, or trending topics not indexing locally.
-2.  **Vector Store (RAG)**: Applied to closed-domain query details or local documentation sets.
-3.  **Direct Response**: Standard dialogue, trivial requests, or greetings that require zero external retrieval steps.
-
-### B. Chain-of-Thought RAG / COT RAG (`35_COTRag.py`)
-Rather than retrieving and generating in a single step, COT RAG decomposes highly complex user problems:
-1.  **Reason**: Generate an step-by-step evaluation plan.
-2.  **Act**: Retrieve specific segments of information matched to the active plan step.
-3.  **Observe**: Collate and evaluate intermediate details.
-4.  **Reflect**: Determine if the gathered details are sufficient, adjusting the plan dynamically if gaps are identified.
-
-### C. Conversational RAG with Memory (`43_RagMemory.py`)
-Integrates thread persistence with context-aware generation. Standard RAG processes questions independently; this script implements stateful cross-turn threads using LangGraph's `MemorySaver` checkpointing. When a user asks a follow-up (e.g., *"Can you explain its second point?"*), the agent reformulates the query based on the conversational history prior to executing vector database lookups.
-
-### D. Cache-Augmented Generation / CAG (`44_CacheAugmentGeneration.py`)
-Evaluates the efficiency gains of Cache-Augmented Generation. Instead of generating vectors and querying databases for every single request, CAG pre-loads the entirety of small-to-medium-sized context bodies directly into the prompt cache/system context of long-context models. This significantly reduces overall RAG latency.
-
-### E. Automated RAG Evaluation (`45_RagEvaluation.py`)
-A custom pipeline inspired by the **RAGAS** framework. It leverages LLM structured outputs to grade generation quality across three key dimensions:
-*   **Faithfulness**: Assessing whether the generated response is strictly derived from the retrieved source context (avoiding hallucination).
-*   **Answer Relevance**: Grading if the generated response directly resolves the user's question.
-*   **Context Precision**: Checking if the documents returned by the retriever contain highly relevant, noise-free information.
+5. **Server Configurations (`langgraph.json` & `pyproject.toml`)**:
+   - **`pyproject.toml`**: Specifies that the environment requires `langgraph-api>=0.11.2` and `langchain-openai`.
+   - **`langgraph.json`**: Acts as the project declaration for the LangGraph CLI. It links the graph name `openai_agent` to the python variable `agent` inside the script (`./Debugging_OpenAI.py:agent`).
+   - **`run_it.sh`**: Running `./run_it.sh` starts a local dev-server instance by executing `uv run python -m langgraph_api.cli`. This binds the compiled agent to local address `http://127.0.0.1:2024`, enabling state debugging, endpoint API querying, and visualization.
 
 ---
 
-## 🧪 7. Isolated Sandbox: 26_Debugging_OpenAI
+## 🚀 Setup and Quickstart
 
-The sub-folder `26_Debugging_OpenAI` is an isolated workspace containing a complete LangGraph API implementation.
+This workspace utilizes [**`uv`**](https://github.com/astral-sh/uv), an extremely fast Python package installer and manager.
 
-*   **Purpose**: Designed specifically to showcase how to test, inspect, and debug LangGraph agents locally using the LangGraph API, LangGraph CLI, or LangSmith.
-*   **Key File (`26_Debugging_OpenAI/Debugging_OpenAI.py`)**:
-    *   Defines two distinct StateGraphs: a `default_graph` (a simple single-node LLM invoker) and an `alternative_graph` (a ReAct-style agent utilizing a custom `add` tool node and structured `should_continue` conditional routers).
-    *   Demonstrates how to compile the agent and export it as an interface.
-*   **Local Server Integration**: Configured with `langgraph.json` so developers can run `langgraph dev` from this folder, bringing up an interactive local UI to step through node executions, review graph variables, and debug state changes in real-time.
-
----
-
-## 🚀 Getting Started & Installation
-
-This project utilizes **uv**, the extremely fast Python package and workspace manager.
-
-### Prerequisites
-Make sure you have `uv` installed. If not, install it via curl or brew:
+### 1. Prerequisites
+Ensure you have Python 3.12+ and `uv` installed. If you need `uv`, install it via:
 ```bash
-# macOS/Linux installation
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Alternative macOS installation
-brew install uv
+# macOS/Linux
+curl -LsSf https://astral-sh/uv/install.sh | sh
 ```
 
-### Installation Steps
+### 2. Install Dependencies
+Run the following command in the root folder to set up a virtual environment and synchronize all required libraries:
+```bash
+uv sync
+```
 
-1.  **Clone the Repository**:
-    ```bash
-    git clone https://github.com/yourusername/Agentic-RAG-Cookbook.git
-    cd Agentic-RAG-Cookbook
-    ```
-
-2.  **Synchronize Workspace & Virtual Environment**:
-    Run `uv sync` to automatically create a local virtual environment (`.venv`) with the exact python dependencies resolved in `uv.lock`:
-    ```bash
-    uv sync
-    ```
-
-3.  **Activate Virtual Environment**:
-    ```bash
-    # On macOS/Linux
-    source .venv/bin/activate
-    
-    # On Windows
-    .venv\Scripts\activate
-    ```
-
----
-
-## 🔑 Environment Variables Reference
-
-To run the various scripts and connect to external providers, copy or create a `.env` file at the root of the workspace. Fill in your credentials as needed:
-
+### 3. Environment Variables
+Copy the sample environment file and insert your API credentials (OpenAI, Groq, LangSmith, AstraDB, etc.):
+```bash
+cp dot_env_sample.txt .env
+```
+Ensure your `.env` contains:
 ```env
-# Core LLM Providers
-OPENAI_API_KEY=sk-proj-your-openai-api-key
-GROQ_API_KEY=gsk_your-groq-api-key
-ANTHROPIC_API_KEY=sk-ant-your-anthropic-key
-
-# Vector Databases & Search Engines
-PINECONE_API_KEY=your-pinecone-key
-PINECONE_REGION=us-east-1
-PINECONE_CLOUD=aws
-
-ASTRA_DB_API_ENDPOINT=https://your-astra-endpoint.apps.astra.datastax.com
-ASTRA_DB_APPLICATION_TOKEN=AstraCS:your-token-here
-
-# Web Search APIs for fallback routing
-TAVILY_API_KEY=tvly-your-tavily-key
-
-# Debugging and Tracing
+OPENAI_API_KEY=your-openai-api-key
+GROQ_API_KEY=your-groq-api-key
 LANGCHAIN_TRACING_V2=true
-LANGCHAIN_PROJECT=Agentic-RAG-Cookbook
-LANGCHAIN_API_KEY=lsv2_your-langsmith-key
+LANGCHAIN_API_KEY=your-langsmith-api-key
 ```
 
-### Running Scripts
-Once your `.env` is configured and your environment is active, run any sandbox file directly from the command line:
+### 4. Running a Cookbook Chapter
+Execute any script file directly using `uv run`. For example, to run the basic FAISS build check:
 ```bash
-python 02a_ChromaDB_VectorStore.py
-python 31d_AgenticRAGDetailedProject_Grader.py
+uv run 03a_FAISS_BuildStore.py
 ```
-
-To run the debugging sandbox local server, navigate to the folder and run the LangGraph CLI:
+To spin up the local LangGraph API debugging server inside `22_Debugging`:
 ```bash
-cd 26_Debugging_OpenAI
-uv run langgraph dev
+cd 22_Debugging
+chmod +x run_it.sh
+./run_it.sh
 ```
-
----
-
-*Explore, modify, and build! Use this sandbox as your starting pad for enterprise-grade Agentic RAG development.*

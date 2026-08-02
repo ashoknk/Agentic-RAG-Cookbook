@@ -1,3 +1,34 @@
+"""
+RAG EVALUATION FRAMEWORK (RAGAS Style)
+
+### Concept:
+Evaluation measures the overall quality, accuracy, and trustworthiness of a 
+Retrieval-Augmented Generation (RAG) system using key core metrics:
+
+1. Faithfulness: 
+   - Is the generated answer derived solely and accurately from the retrieved context?
+2. Answer Relevance: 
+   - Does the generated answer directly address the user's original question?
+3. Context Precision: 
+   - How relevant and noise-free are the retrieved documents relative to the query?
+
+
+Complementary Role (Evaluation vs. Grading):
+--------------------------------------------------------------------------------
+This evaluation module works alongside grader scripts (e.g., 25c_AgenticRAG_Grader.py). 
+They complement each other because they solve two fundamental, distinct problems 
+in building RAG applications:
+
+  - Agentic Graders (Inline / Runtime Control):
+    Filter out bad retrievals and control workflow routing dynamically *during* 
+    execution to prevent hallucinated generation.
+
+  - RAGAS-Style Evaluators (Offline / Post-Hoc Audit):
+    Provide structured scoring (e.g., 1–5 scale) and detailed reasoning to benchmark, 
+    audit, and track overall system performance across datasets.
+================================================================================
+"""
+
 import os
 from typing import TypedDict
 from dotenv import load_dotenv
@@ -5,14 +36,6 @@ from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
-
-# # RAG Evaluation (RAGAS Style)#
-# ### Concept
-# Evaluation measures the quality of a RAG system using metrics like:
-# 1. Faithfulness: Is the answer derived solely from the context?
-# 2. Answer Relevance: Does the answer actually address the question?
-# 3. Context Precision: How relevant are the retrieved documents?
-# 25c_AgenticRAG_Grader.py -They complement each other because they solve two fundamental, distinct problems in building RAG applications:
 
 load_dotenv()
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
@@ -32,8 +55,7 @@ class EvalState(TypedDict):
     faithfulness_result: MetricScore
 
 # ### 3. Define Evaluation Node
-#NOTE - use gpt-4o-mini if below does not work 
-llm = ChatOpenAI(model="gpt-4o", temperature=0)
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
 def evaluate_faithfulness(state: EvalState):
     print("---EVALUATING FAITHFULNESS---")
@@ -66,7 +88,3 @@ eval_report = result["faithfulness_result"]
 
 print(f"Score: {eval_report.score}/5")
 print(f"Reason: {eval_report.reason}")
-
-# # Note: 
-# The score might be lower because the context did not mention 
-# 'most populous city in Europe', even if it is a true fact.
