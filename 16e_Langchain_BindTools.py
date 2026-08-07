@@ -41,13 +41,11 @@ from langchain.tools import tool
 load_dotenv()
 os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
 
+
 # Initialize the model for streaming and batch execution
 OPENAI_MODEL = "gpt-4o-mini"
 model = init_chat_model(OPENAI_MODEL)
 
-question1 ="How does a microwave cook food so fast? "
-question2 ="Why do mirrors reflect our image?"
-append = " Please explain in 3 sentences."
 
 # Decorator - registers a function as an  tool that an agent or LLM can call.
 @tool
@@ -71,7 +69,7 @@ question1 = f"What's the weather like in {city1}?"
 # LLMs do not have "state" or memory on their own; they only know what you pass into them in the messages array
 
 # Step 1: User Question -> LLM decides to call a tool
-messages = [("user", "What's the weather like in London?")]
+messages = [("user", question1)]
 # Execute the tool with the generated arguments
 # Run the local get_weather function using LangChain's tool.invoke(), and gets back a ToolMessage
 ai_msg = model_with_tools.invoke(messages)
@@ -82,7 +80,6 @@ for tool_call in ai_msg.tool_calls:
     # View tool calls made by the model
     print(f"Tool: {tool_call['name']}")
     print(f"Args: {tool_call['args']}")
-
 
 
 # Step 2: Manually execute the requested tool and append the result
