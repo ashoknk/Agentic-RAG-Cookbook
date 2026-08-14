@@ -41,6 +41,13 @@ HOW THIS CODE DIFFERS FROM FLAT SUPERVISOR (`30b_Multiagent_Supervisor.py`):
      │     (Subgraph)      │               │     (Subgraph)      │
      └─────────────────────┘               └─────────────────────┘   
 ================================================================================
+
+team_search_agent ---> tools=[tavily_tool, internal_tool_1]
+web_scraper_agent --->  tools=[scrape_webpages]
+doc_writer_agent --->  tools=[write_document, edit_document, read_document]
+note_taking_agent ---> tools=[create_outline, read_document]
+chart_generating_agent --->  tools=[read_document, python_repl_tool]
+
 """
 
 import os
@@ -82,7 +89,8 @@ llm = init_chat_model("openai:gpt-4o-mini")
 # Configure Web Search Tools
 tavily_tool = TavilySearch(max_results=5)
 
-
+# Loads a text file, splits it into vector chunks via FAISS, & 
+# builds a custom retriever tool for internal document search.
 def make_retriever_tool_from_text(file, name, desc):
     embedding = OpenAIEmbeddings(model="text-embedding-3-small", dimensions=512)
     docs = TextLoader(file, encoding="utf-8").load()
@@ -92,6 +100,8 @@ def make_retriever_tool_from_text(file, name, desc):
     vs = FAISS.from_documents(chunks, embedding)
     retriever = vs.as_retriever()
 
+    
+    # Executes a vector search against the loaded document retriever and returns matching context chunks (Inner function)  
     def tool_func(query: str) -> str:
         print(f"📚 Using tool: {name}")
         results = retriever.invoke(query)
@@ -108,6 +118,7 @@ internal_tool_1 = make_retriever_tool_from_text(
 
 
 # --- GENERAL UTILITIES & SHARED TOOLS ---
+# Fetches web pages using WebBaseLoader and formats their extracted raw contents 
 @tool
 def scrape_webpages(urls: List[str]) -> str:
     """Use requests and bs4 to scrape the provided web pages for detailed information."""
@@ -124,8 +135,10 @@ def scrape_webpages(urls: List[str]) -> str:
 # Temporary shared environment directory
 _TEMP_DIRECTORY = TemporaryDirectory()
 WORKING_DIRECTORY = Path(_TEMP_DIRECTORY.name)
+print(f"📁 Temporary working directory created at: {WORKING_DIRECTORY}") #NOTE Just for testing
 
 
+# Formats a list of strings into a numbered outline and writes it to a file inside the temporary working directory.
 @tool
 def create_outline(
     points: Annotated[List[str], "List of main points or sections."],
@@ -138,6 +151,7 @@ def create_outline(
     return f"Outline saved to {file_name}"
 
 
+# Creates a new text document file in the temporary directory with the provided string contents
 @tool
 def write_document(
     content: Annotated[str, "Text content to be written into the document."],
@@ -149,6 +163,7 @@ def write_document(
     return f"Document saved to {file_name}"
 
 
+# Reads an existing document and inserts specified lines at designated line numbers before re-saving the file
 @tool
 def edit_document(
     file_name: Annotated[str, "Path of the document to be edited."],
@@ -161,10 +176,14 @@ def edit_document(
     with (WORKING_DIRECTORY / file_name).open("r") as file:
         lines = file.readlines()
 
+    # inserts.items() extracts each entry as a (line_number, text) tuple.  
+    # sorted(...) orders those tuples by line_number in ascending order.
     sorted_inserts = sorted(inserts.items())
+    # Validate line numbers and insert text sequentially at specified 1-indexed positions.
     for line_number, text in sorted_inserts:
         if 1 <= line_number <= len(lines) + 1:
             lines.insert(line_number - 1, text + "\n")
+            print(f"Inserted text at line {line_number}: {text}") #NOTE Just for testing
         else:
             return f"Error: Line number {line_number} is out of range."
 
@@ -174,6 +193,8 @@ def edit_document(
     return f"Document edited and saved to {file_name}"
 
 
+# Reads lines from a target document in the working directory, 
+# returning all text or a specific slice based on start/end indices
 @tool
 def read_document(
     file_name: Annotated[str, "File path to read the document from."],
@@ -188,7 +209,8 @@ def read_document(
     return "\n".join(lines[start:end])
 
 
-
+# Dynamically executes Python code snippets while redirecting standard output 
+# to return generated print outputs or error details.
 @tool
 def python_repl_tool(
     code: Annotated[str, "The python code to execute to generate your chart."],
@@ -216,7 +238,8 @@ def python_repl_tool(
 class State(MessagesState):
     next: str
 
-
+# Factory function that constructs a custom supervisor node function tailored to 
+# direct routing between specified worker nodes.
 def make_supervisor_node(llm: BaseChatModel, members: list[str]) -> str:
     options = ["FINISH"] + members
     system_prompt = (
@@ -232,12 +255,15 @@ def make_supervisor_node(llm: BaseChatModel, members: list[str]) -> str:
 
         next: Literal[*options]
 
+    # Prompts the LLM with structured output to select the next worker node or signal task completion (Inner function)
     def supervisor_node(state: State) -> Command[Literal[*members, "__end__"]]:
         messages = [
             {"role": "system", "content": system_prompt},
         ] + state["messages"]
         response = llm.with_structured_output(Router).invoke(messages)
+        # Reads the destination selected by the supervisor LLM (which will be a worker agent's name or "FINISH"
         goto = response["next"]
+        # Checks if the LLM decided the task is complete. Convert the string "FINISH" into LangGraph's END constant.
         if goto == "FINISH":
             goto = END
 
@@ -245,11 +271,13 @@ def make_supervisor_node(llm: BaseChatModel, members: list[str]) -> str:
 
     return supervisor_node
 
+    # Command -https://reference.langchain.com/python/langgraph/types/Command
+
 
 # --- RESEARCH TEAM SUBGRAPH ---
 team_search_agent = create_agent(llm, tools=[tavily_tool, internal_tool_1])
 
-
+# Invokes the search team agent on current state messages and routes results back to the research supervisor node
 def search_node(state: State) -> Command[Literal["supervisor"]]:
     result = team_search_agent.invoke(state)
     return Command(
@@ -264,7 +292,7 @@ def search_node(state: State) -> Command[Literal["supervisor"]]:
 
 web_scraper_agent = create_agent(llm, tools=[scrape_webpages])
 
-
+# Runs the web scraper agent to extract webpage contents and routes its response back to the research supervisor
 def web_scraper_node(state: State) -> Command[Literal["supervisor"]]:
     result = web_scraper_agent.invoke(state)
     return Command(
@@ -304,9 +332,7 @@ os.system(f"open {OUTPUT_IMAGE_PATH}")
 
 
 # --- WRITING TEAM SUBGRAPH ---
-doc_writer_agent = create_agent(
-    llm,
-    tools=[write_document, edit_document, read_document],
+doc_writer_agent = create_agent(llm,tools=[write_document, edit_document, read_document],
     system_prompt=(
         "You can read, write and edit documents based on note-taker's outlines. "
         "Don't ask follow-up questions."
@@ -328,16 +354,14 @@ def doc_writing_node(state: State) -> Command[Literal["supervisor"]]:
     )
 
 
-note_taking_agent = create_agent(
-    llm,
-    tools=[create_outline, read_document],
+note_taking_agent = create_agent(llm,tools=[create_outline, read_document],
     system_prompt=(
         "You can read documents and create outlines for the document writer. "
         "Don't ask follow-up questions."
     ),
 )
 
-
+# Invokes the note-taking agent to construct outlines and routes messages back to the paper writing supervisor.
 def note_taking_node(state: State) -> Command[Literal["supervisor"]]:
     result = note_taking_agent.invoke(state)
     return Command(
@@ -352,11 +376,9 @@ def note_taking_node(state: State) -> Command[Literal["supervisor"]]:
     )
 
 
-chart_generating_agent = create_agent(
-    llm, tools=[read_document, python_repl_tool]
-)
+chart_generating_agent = create_agent(llm, tools=[read_document, python_repl_tool])
 
-
+# Calls the chart generator agent to execute visualization Python code and reports findings back to the writing supervisor.
 def chart_generating_node(state: State) -> Command[Literal["supervisor"]]:
     result = chart_generating_agent.invoke(state)
     return Command(
@@ -403,7 +425,8 @@ os.system(f"open {OUTPUT_IMAGE_PATH}")
 # --- TOP LEVEL ROOT SUPERVISOR ---
 teams_supervisor_node = make_supervisor_node(llm, ["research_team", "writing_team"])
 
-
+# Invokes the entire compiled research team subgraph with incoming state messages and 
+# hands results back to the root supervisor.
 def call_research_team(state: State) -> Command[Literal["supervisor"]]:
     response = research_graph.invoke({"messages": state["messages"][-1]})
     return Command(
@@ -417,7 +440,8 @@ def call_research_team(state: State) -> Command[Literal["supervisor"]]:
         goto="supervisor",
     )
 
-
+# Invokes the entire compiled paper writing team subgraph with incoming state messages and 
+# hands results back to the root supervisor
 def call_paper_writing_team(state: State) -> Command[Literal["supervisor"]]:
     response = paper_writing_graph.invoke({"messages": state["messages"][-1]})
     return Command(

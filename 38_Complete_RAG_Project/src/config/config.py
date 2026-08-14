@@ -10,11 +10,14 @@ load_dotenv()
 class Config:
     """Configuration class for RAG system"""
     
+    os.environ["USER_AGENT"] = "38_Complete_RAG_Project/1.0"
     # API Keys
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
     
     # Model Configuration
     LLM_MODEL = "openai:gpt-4o"
+
+    PDF_FOLDER = "data"
     
     # Document Processing
     CHUNK_SIZE = 500
@@ -22,10 +25,13 @@ class Config:
     
     # Default URLs
     DEFAULT_URLS = [
-        "https://lilianweng.github.io/posts/2023-06-23-agent/",
-        "https://lilianweng.github.io/posts/2024-04-12-diffusion-video/"
+        "https://arxiv.org/html/2602.22406v1",
+        "https://arxiv.org/html/2601.07823v1",
+        "https://arxiv.org/abs/2603.07670",
+        "https://arxiv.org/abs/2505.14357"
     ]
     
+    # @classmethod is used to create methods bound to the class itself rather than a single object instance
     @classmethod
     def get_llm(cls):
         """Initialize and return the LLM model"""

@@ -35,17 +35,4 @@ class VectorStore:
             raise ValueError("Vector store not initialized. Call create_vectorstore first.")
         return self.retriever
     
-    def retrieve(self, query: str, k: int = 4) -> List[Document]:
-        """
-        Retrieve relevant documents for a query
-        
-        Args:
-            query: Search query
-            k: Number of documents to retrieve
-            
-        Returns:
-            List of relevant documents
-        """
-        if self.retriever is None:
-            raise ValueError("Vector store not initialized. Call create_vectorstore first.")
-        return self.retriever.invoke(query)
+    

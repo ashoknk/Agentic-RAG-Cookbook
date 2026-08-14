@@ -13,7 +13,7 @@ The system is designed as a state-machine using **LangGraph**. Below is the flow
 ```
 [ PDF Directory (data/) ] ──┐
                             ├──► [ Document Processor ] ──► [ FAISS Vector Store ]
-[ Web URLs (data/url.txt) ] ─┘        (Chunking)           (OpenAI Embeddings)
+[ Web URLs (data/urls.txt) ] ─┘        (Chunking)           (OpenAI Embeddings)
                                                                  │
                                                             (Retriever Tool)
                                                                  │
@@ -26,7 +26,7 @@ The system is designed as a state-machine using **LangGraph**. Below is the flow
 
 ### 1. Ingestion Pipeline
 * **Local Assets**: Automatically reads and processes all PDFs placed within the `data/` directory (using `PyPDFDirectoryLoader`).
-* **Web Scraping**: Loads and parses remote URLs listed in `data/url.txt` or configuration defaults (using `WebBaseLoader`).
+* **Web Scraping**: Loads and parses remote URLs listed in `data/urls.txt` or configuration defaults (using `WebBaseLoader`).
 * **Embedding**: Text is split into chunks of `500` characters with a `50`-character overlap using a `RecursiveCharacterTextSplitter`, embedded using OpenAI's `text-embedding-3-small` (512 dimensions), and indexed in a local high-performance **FAISS** vector store.
 
 ### 2. LangGraph State Workflow
@@ -75,9 +75,6 @@ uv venv
 
 # Activate virtual environment
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-# Install dependencies using uv pip
-uv pip install -r requirements.txt
 ```
 
 ---
@@ -144,10 +141,9 @@ Below is an overview of the key folders and files in this repository:
 * **`main.py`**: The CLI entry point that initializes the RAG system and runs sample/interactive prompts.
 * **`streamlit_app.py`**: The Streamlit application hosting the user-friendly Web UI.
 * **`pyproject.toml` / `uv.lock`**: Configuration files detailing python requirements and package pins for `uv`.
-* **`requirements.txt`**: Standard dependencies list.
 * **`data/`**: Source documents folder containing:
   - `.pdf` files regarding Agent Memory, OpenClaw, and Diffusion Video Models.
-  - `url.txt`: Web URLs to scrape and index.
+  - `urls.txt`: Web URLs to scrape and index.
 * **`src/`**: Core codebase:
   - **`config/config.py`**: Model selection (`openai:gpt-4o`), chunking configuration, and default URL settings.
   - **`document_ingestion/document_processor.py`**: Text loading, directory scanning, and splitting pipeline.

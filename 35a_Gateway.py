@@ -1,6 +1,8 @@
 """
 This file serves as the foundational introduction to an LLM Gateway using LiteLLM. 
 https://docs.litellm.ai/docs/#litellm-python-sdk
+LiteLLM is an open-source library that gives you a single, unified interface to call 100+ LLMs 
+— OpenAI, Anthropic, Vertex AI, Bedrock, and more — using the OpenAI format.
 
 It builds upon the core concept of unified APIs by showing beginners how to make 
 standard requests across different providers, handle unexpected provider outages using 
@@ -24,7 +26,9 @@ logging.getLogger("LiteLLM Proxy").setLevel(logging.CRITICAL)
 from litellm import completion, completion_cost
 import litellm
 from litellm.caching import Cache
-https://docs.litellm.ai/docs/caching/local_caching
+# https://docs.litellm.ai/docs/caching/local_caching
+# liteLLM implements exact match caching 
+
 
 litellm.suppress_debug_info = True
 litellm.set_verbose = False
@@ -67,7 +71,6 @@ for label, model in providers:
     except Exception as e:
         print(f"{label:<15}: ❌ {type(e).__name__}")
 print("-" * 50)
-
 
 
 # Step 4: Configure automated fallbacks to handle primary model provider outages

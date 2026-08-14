@@ -5,6 +5,7 @@
 .env
 .venv
 dotenv.txt
+codeaiwash.csv
 
 # Ignore all vector databases generated 
 faiss_*
@@ -14,5 +15,8 @@ output*
 # Optional: If you want to make sure your .gitignore file itself is NOT ignored
 !.gitignore
 
-uv.lock 
 
+# Python bytecode & cache files
+__pycache__/
+*.py[cod]
+*$py.class

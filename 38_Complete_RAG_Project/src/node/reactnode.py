@@ -37,6 +37,7 @@ class RAGNodes:
             if not docs:
                 return "No documents found."
             merged = []
+            # take the first 8 items from the docs list [doc1 to doc8]
             for i, d in enumerate(docs[:8], start=1):
                 meta = d.metadata if hasattr(d, "metadata") else {}
                 title = meta.get("title") or meta.get("source") or f"doc_{i}"
@@ -83,6 +84,7 @@ class RAGNodes:
         answer: Optional[str] = None
         if messages:
             answer_msg = messages[-1]
+            # similar to answer_msg.content. But if answer_msg is something else without content, then only getattr is safe.
             answer = getattr(answer_msg, "content", None)
 
         return RAGState(

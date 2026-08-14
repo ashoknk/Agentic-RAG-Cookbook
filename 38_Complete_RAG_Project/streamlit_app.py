@@ -41,6 +41,26 @@ def init_session_state():
     if 'history' not in st.session_state:
         st.session_state.history = []
 
+
+def load_sources_from_file() -> list[str]:
+    """Load sources from data/urls.txt and add a local PDF folder if it exists."""
+    sources = []
+
+    urls_file = Path("data/urls.txt")
+    if urls_file.exists():
+        sources.extend(
+            [line.strip() for line in urls_file.read_text().splitlines() if line.strip()]
+        )
+
+    pdf_dir = Path("data")
+    if pdf_dir.exists() and pdf_dir.is_dir():
+        sources.append(str(pdf_dir))
+
+    print(f"streamlit_app.py- Loading sources: {sources}")        
+
+    return sources or Config.DEFAULT_URLS
+
+# to cache global, non-serializable objects—such as ML models/ DB connections so they are only loaded once and shared across all users, sessions
 @st.cache_resource
 def initialize_rag():
     """Initialize the RAG system (cached)"""
@@ -53,11 +73,11 @@ def initialize_rag():
         )
         vector_store = VectorStore()
         
-        # Use default URLs
-        urls = Config.DEFAULT_URLS
+        # Load sources from file or fallback to defaults
+        sources = load_sources_from_file()
         
-        # Process documents
-        documents = doc_processor.process_urls(urls)
+        # Process documents from the configured sources
+        documents = doc_processor.process_sources(sources)
         
         # Create vector store
         vector_store.create_vectorstore(documents)
@@ -78,9 +98,19 @@ def main():
     """Main application"""
     init_session_state()
     
-    # Title
-    st.title("🔍 RAG Document Search")
-    st.markdown("Ask questions about the loaded documents")
+    # Title ans sample questions
+    st.title("🧠Agentic Retrieval-Augmented Generation (RAG) System")
+    st.caption("Ask questions, extract insights, and cite sources from your loaded documents.")
+    st.markdown("---")
+    st.caption("What is the difference between short-term and long-term memory in LLM agents?")
+    st.caption("What are the core components of the OpenClaw execution framework?")
+    st.caption("How does the interaction loop operate between agent memory, the LLM, and tools?")
+    st.caption("What are the main challenges when extending diffusion models to video generation?")
+    st.caption("What strategies make video diffusion models more computationally efficient?")
+    st.caption("How do Diffusion Transformers differ from U-Net architectures for video processing?")
+    st.caption("What are the primary security vulnerabilities when deploying autonomous OpenClaw agents?")
+    st.caption("How can prompt injection attacks be prevented from hijacking an agent loop?")
+
     
     # Initialize system
     if not st.session_state.initialized:
@@ -93,58 +123,65 @@ def main():
     
     st.markdown("---")
     
-    # Search interface
-    with st.form("search_form"):
-        question = st.text_input(
-            "Enter your question:",
-            placeholder="What would you like to know?"
-        )
-        submit = st.form_submit_button("🔍 Search")
-    
-    # Process search
-    if submit and question:
+    # Chat interface: show previous messages and use native chat input
+    # Display existing conversation messages
+    # st.chat_message("user") in Streamlit Docs creates a visual container styled for a user chat bubble
+    # "assistant" sets up the correct visual layout, alignment, and default robot-style avatar for an AI or bot
+    for item in st.session_state.history:
+        with st.chat_message("user"):
+            st.write(item.get('question', ''))
+        with st.chat_message("assistant"):
+            st.write(item.get('answer', ''))
+
+    # Chat input
+    user_input = st.chat_input("Ask a question...")
+    if user_input:
         if st.session_state.rag_system:
             with st.spinner("Searching..."):
                 start_time = time.time()
-                
+
                 # Get answer
-                result = st.session_state.rag_system.run(question)
-                
+                result = st.session_state.rag_system.run(user_input)
+
                 elapsed_time = time.time() - start_time
-                
+
                 # Add to history
                 st.session_state.history.append({
-                    'question': question,
+                    'question': user_input,
                     'answer': result['answer'],
                     'time': elapsed_time
                 })
-                
-                # Display answer
-                st.markdown("### 💡 Answer")
-                st.success(result['answer'])
-                
+
+                # Immediately display the new chat messages
+                with st.chat_message("user"):
+                    st.write(user_input)
+                with st.chat_message("assistant"):
+                    st.write(result['answer'])
+
                 # Show retrieved docs in expander
                 with st.expander("📄 Source Documents"):
-                    for i, doc in enumerate(result['retrieved_docs'], 1):
+                    for i, doc in enumerate(result.get('retrieved_docs', []), 1):
                         st.text_area(
                             f"Document {i}",
                             doc.page_content[:300] + "...",
                             height=100,
                             disabled=True
                         )
-                
-                st.caption(f"⏱️ Response time: {elapsed_time:.2f} seconds")
+
+                # Display metrics in two columns: response time and retrieval count
+                retrieved_count = len(result.get('retrieved_docs', []))
+                col1, col2 = st.columns(2)
+                col1.metric(label="Response Time", value=f"{elapsed_time:.2f}s")
+                col2.metric(label="Retrieved Docs", value=str(retrieved_count))
     
-    # Show history
+    # Recent Searches in the sidebar 
     if st.session_state.history:
-        st.markdown("---")
-        st.markdown("### 📜 Recent Searches")
-        
-        for item in reversed(st.session_state.history[-3:]):  # Show last 3
-            with st.container():
+        with st.sidebar:
+            st.markdown("---")
+            st.markdown("### 📜 Recent Searches")
+            for item in reversed(st.session_state.history[-3:]):  # Show last 3
                 st.markdown(f"**Q:** {item['question']}")
-                st.markdown(f"**A:** {item['answer'][:200]}...")
-                st.caption(f"Time: {item['time']:.2f}s")
+                st.markdown(f"**A:** {item['answer'][:100]}...")
                 st.markdown("")
 
 if __name__ == "__main__":
